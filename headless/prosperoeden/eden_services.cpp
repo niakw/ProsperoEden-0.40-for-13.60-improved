@@ -14,6 +14,7 @@
 #include "native_directory.h"
 #include "pe/core/strings.hpp"
 #include "common/net/net.h"
+#include "network_audit.h"
 #include "radio_input.h"
 #include "settings_store.h"
 #include "version.h"
@@ -1347,6 +1348,7 @@ bool EdenServices::set_preferences(const pe::ui::Preferences& preferences) {
         // Apply the toggle immediately in the launcher: no hidden running
         // stderr/stdout writers and no growing emulator log when disabled.
         Eden::NativeLogs::SetDetailed(value.detailed_logging);
+        eden_network_audit_enable(value.detailed_logging ? 1 : 0);
         if (!value.detailed_logging) {
             Eden::BootTrace::Quiet(Eden::LogsDir());
             for (const char* name : {
