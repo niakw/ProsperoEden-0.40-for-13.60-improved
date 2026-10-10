@@ -115,3 +115,10 @@ lookalike names still reach it, that local numeric IPv4 resolves, and that
 unsupported IPv6 retains the SDK's EAI_FAMILY behavior. The cached legacy
 backport validator accepts the already-overlaid domain-mode header, while
 the new separate validator still requires guest network enabled and filtered.
+
+## Native rebuild after generated-worker fix
+
+R294's generated-worker full-queue profiler wrapper is now constructed as
+one CMake replacement value. The preflight verified this and the native
+resolver harness in run #38087829792 (SUCCESS). Rebuild test-only from this
+source to qualify the PS5 SDK compile/link and packaged hosts checksum.
