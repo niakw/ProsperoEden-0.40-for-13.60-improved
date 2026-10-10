@@ -231,7 +231,10 @@ struct alignas(64) JitCallbacks {
 };
 inline std::array<JitCallbacks, 4> jit_callbacks{};
 inline void CountJit(std::atomic<unsigned long long>& counter) {
-    counter.fetch_add(1, std::memory_order_relaxed);
+    // A32 memory callbacks can run extremely often. Development counters
+    // must not bounce shared cache lines with Detailed Logging turned off.
+    if (detailed_gpu_profile.load(std::memory_order_relaxed))
+        counter.fetch_add(1, std::memory_order_relaxed);
 }
 // GPU thread only (Vulkan frame report): cumulative GPU-thread idle/dispatch/wait
 // totals with the owner's CPU clock, then a guest-core CPU snapshot.
