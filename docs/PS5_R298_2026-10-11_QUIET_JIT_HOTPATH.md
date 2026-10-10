@@ -71,3 +71,7 @@ GPU-owner idle counts cannot establish GPU hardware occupancy. Keep
 shader caches warm and record identical match scenes, game profiles and
 present frame intervals. Do not claim stutter eliminated until
 on-console sustained-gameplay results support it.
+
+## CI preflight
+
+The full host regression workflow [#38091268625](https://github.com/niakw/Prospero.Eden-Encore/actions/runs/38091268625) completed SUCCESS. It includes the extracted real JIT compile-timer C++ fixture, quiet A32 callback accounting, existing GPU queue cancellation tests and packaged domain-matcher tests. The native all-on compile must still verify generated JIT/GPU sources, the R297 guest DNS-list removal, and PS5 SDK ABI. This is a test package, not an R1 release.
