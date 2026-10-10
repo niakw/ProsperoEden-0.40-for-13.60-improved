@@ -28,6 +28,29 @@ Encore takes the opposite approach: keep the **known-working 1.000.040 filesyste
 
 The result is not a blind downgrade and not a blind merge of newer upstream code. It is a **13.60-specific maintained branch** with its own hardening and release validation.
 
+## Developer-branch update — 10 October 2026 (not released)
+
+The latest `dev/ps5-sparse-jit` work includes **R294** (stop-aware, event-driven
+GPU command queue waits, crash-only GPU watchdog evidence, and opt-in cache lock
+timings) and **R295** (one packaged hostname denylist for the PS5 launcher
+and emulated Switch DNS).
+
+- `headless/network-hosts.txt` ships inside the app as `network-hosts.txt`;
+  145 publisher-domain rules cover matching subdomains, with `*` glob
+  support within DNS labels. For example, `ea.com` blocks `api.ea.com`.
+- The previous blanket guest-network shutdown and forced airplane mode are
+  removed from the PS5 test build; permitted hostnames remain resolvable.
+  Existing Nlib cover and banner HTTPS stays available.
+- This is **not a firewall**: direct IP traffic, DoH and domains not included
+  in the file can bypass DNS-only filtering. Use external network controls
+  for stronger protection.
+- Developer host tests validate the parser, guest/launcher integration and
+  native DNS shim; PS5 firmware 13.60 behavior and real gameplay gains
+  remain to be qualified.
+
+For full caveats and test gates see [R294 GPU queue notes](docs/PS5_R294_2026-10-10_GPU_QUEUE_STOP_WAIT.md)
+and [R295 domain policy](docs/PS5_R295_2026-10-10_UNIFIED_DOMAIN_HOSTS.md).
+
 ## Local integration audit — 8 October 2026 (not released)
 
 The latest downloadable build and the current **local audit candidate** are different states.
