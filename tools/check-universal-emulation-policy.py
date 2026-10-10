@@ -14,6 +14,7 @@ graphics = read("headless/graphics.cpp")
 policy = read("headless/encore_performance_policy.h")
 hle = read("headless/backports/eden-fc27-hle-compat.patch")
 offline = read("headless/backports/eden-ps5-guest-offline.patch")
+domain_filter = read("headless/backports/eden-ps5-guest-domain-filter.patch")
 services = read("headless/prosperoeden/eden_services.cpp")
 lib = read("headless/prosperoeden/pe/ui/library.cpp")
 
@@ -23,9 +24,12 @@ for s in ('{130, &ACC_U0::LoadOpenContext, "LoadOpenContext"}',
           '{19, &BSD_USA::Ioctl, "Ioctl"}'):
     assert s in hle, s
 assert hle.count('+    write_buffer.resize(guest_addrin.len);') == 2
-assert "kGuestNetworkOffline = true" in offline
+assert "kGuestNetworkOffline = true" in offline  # immutable legacy patch cache
+assert "kGuestNetworkOffline = false" in domain_filter  # runtime overlay
 assert "SocketImpl(Domain domain, Type type, Protocol protocol)" in offline
-assert 'GetAddrInfoError::NODATA' in offline
+assert 'GetAddrInfoError::NODATA' in domain_filter
+assert 'if (eden_network_host_blocked(host.c_str()))' in domain_filter
+assert 'Settings::values.airplane_mode.SetValue(false);' in main
 
 # The GPU/JIT defaults are global profile-level policies, never a single
 # benchmark game's result hard-coded into the runtime.
