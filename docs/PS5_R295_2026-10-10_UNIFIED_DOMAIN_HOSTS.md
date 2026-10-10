@@ -99,3 +99,10 @@ A PS5 SDK build is still needed. A real device test must separately
 check DNS for `api.ea.com` (denied), `api.nlib.cc` (allowed),
 and an explicitly allowed **game** hostname to confirm guest sockets
 and NIFM behave correctly on firmware 13.60.
+
+## Native integration run
+
+Preflight #38086688650 completed SUCCESS, including the compiled matcher and
+source-level guest/host wiring checks. This does not yet exercise the native
+PS5 SDK linker, patched guest sockets, packaging or hardware network behavior.
+The next all-on CI build is a **test package only**, not a release.
