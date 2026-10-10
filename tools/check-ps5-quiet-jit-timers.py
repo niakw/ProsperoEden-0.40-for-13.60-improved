@@ -24,6 +24,11 @@ assert "if (active && eden_jit_compile)" in snippet
 assert 'extern \\"C\\" bool eden_native_detailed_logging() noexcept __attribute__((weak));' in cmake
 assert "if (eden_native_detailed_logging && eden_native_detailed_logging() && ++pressure_count <= 200)" in cmake
 assert "std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now()" not in cmake
+perf=(root/"headless/performance.h").read_text()
+services=(root/"headless/prosperoeden/eden_services.cpp").read_text()
+assert "if (detailed_gpu_profile.load(std::memory_order_relaxed))\n        counter.fetch_add(1, std::memory_order_relaxed);" in perf
+assert "detailed_gpu_profile.store(value.detailed_logging" in services
+
 assert 'string(REPLACE "${compile_site}" "${compile_site}${quiet_jit_timer}"' in cmake
 
 program=r"""
@@ -34,6 +39,13 @@ program=r"""
 static bool detailed=false;
 static unsigned callbacks=0;
 static unsigned long long elapsed=0;
+#include <atomic>
+static std::atomic<unsigned long long> memory_callback_counter{};
+static std::atomic<bool> detailed_gpu_profile{false};
+static void CountJit(std::atomic<unsigned long long>& counter) {
+    if (detailed_gpu_profile.load(std::memory_order_relaxed))
+        counter.fetch_add(1, std::memory_order_relaxed);
+}
 extern "C" bool eden_native_detailed_logging() noexcept __attribute__((weak));
 extern "C" void eden_jit_compile(unsigned, unsigned long long) __attribute__((weak));
 extern "C" bool eden_native_detailed_logging() noexcept {return detailed;}
@@ -56,13 +68,18 @@ INJECT
     }
 }
 int main() {
-    for (int i=0;i<1000;++i) compile_one();
-    assert(callbacks==0 && elapsed==0);
+    for (int i=0;i<1000;++i) { compile_one(); CountJit(memory_callback_counter); }
+    assert(callbacks==0 && elapsed==0 && memory_callback_counter.load()==0);
     detailed=true;
+    detailed_gpu_profile.store(true);
+    CountJit(memory_callback_counter);
+    assert(memory_callback_counter.load()==1);
     compile_one();
     assert(callbacks==1 && elapsed>0);
     detailed=false;
-    for (int i=0;i<1000;++i) compile_one();
+    detailed_gpu_profile.store(false);
+    for (int i=0;i<1000;++i) { compile_one(); CountJit(memory_callback_counter); }
+    assert(memory_callback_counter.load()==1);
     assert(callbacks==1);
     std::puts("PASS: zero JIT block clock samples/callbacks while quiet, exact one timed verbose sample");
 }
