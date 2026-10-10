@@ -94,3 +94,60 @@ with tempfile.TemporaryDirectory(prefix="eden-jit-quiet-timer-") as tmp:
     subprocess.run([compiler,"-std=c++20","-O2","-Wall","-Wextra","-Werror",
                     str(source),"-o",str(binary)],check=True)
     subprocess.run([str(binary)],check=True,timeout=10)
+
+
+# R299: test the exact extracted shared-JIT dispatch-counter function in
+# addition to the CMake timer. These counters are diagnostics, not guest state.
+support=(root/"headless/dynarmic/jit_group_support.inc").read_text()
+impl=(root/"headless/dynarmic/jit_impl.inc").read_text()
+assert "if (!eden_native_detailed_logging || !eden_native_detailed_logging()) return;" in support
+assert "const bool timed = eden_native_detailed_logging && eden_native_detailed_logging();" in impl
+assert "const u64 start = timed ? EdenClockNs() : 0;" in impl
+assert "const u64 translated = timed ? EdenClockNs() : 0;" in impl
+assert "const u64 optimized = timed ? EdenClockNs() : 0;" in impl
+assert "if (timed) EdenReportCompile(descriptor, start, translated, optimized);" in impl
+assert "if (eden_native_detailed_logging && eden_native_detailed_logging() &&\n            ++pressure_count <= 200)" in impl
+assert "if (report_clear) std::printf(\"EDEN_JIT_CLEAR_BEGIN" in impl
+assert "if (report_clear) {" in impl
+assert "const auto clear_started = report_clear ?" in impl
+assert "std::chrono::steady_clock::now() - clear_started" in impl
+
+fragment="enum EdenPath : unsigned" + support.split("enum EdenPath : unsigned",1)[1].split("std::mutex eden_groups_mutex;",1)[0]
+counter_program=r"""
+#include <array>
+#include <atomic>
+#include <cassert>
+#include <cstdio>
+using u32=unsigned;
+static bool detailed=false;
+extern "C" bool eden_native_detailed_logging() noexcept __attribute__((weak));
+extern "C" bool eden_native_detailed_logging() noexcept { return detailed; }
+namespace {
+INJECT
+}
+int main() {
+    for (int i=0; i<100000; ++i) {
+        EdenCount(0,EdenRuns);
+        EdenCount(1,EdenLookups);
+    }
+    assert(eden_path[0].values[EdenRuns].load()==0);
+    assert(eden_path[1].values[EdenLookups].load()==0);
+    detailed=true;
+    EdenCount(0,EdenRuns);
+    EdenCount(1,EdenLookups,7);
+    assert(eden_path[0].values[EdenRuns].load()==1);
+    assert(eden_path[1].values[EdenLookups].load()==7);
+    detailed=false;
+    EdenCount(0,EdenRuns);
+    assert(eden_path[0].values[EdenRuns].load()==1);
+    std::puts("PASS: real shared-JIT dispatch counters remain untouched in quiet mode and follow live toggle");
+}
+""".replace("INJECT",fragment)
+with tempfile.TemporaryDirectory(prefix="eden-jit-quiet-dispatch-") as tmp:
+    p=Path(tmp)
+    source=p/"dispatch.cpp"
+    binary=p/"dispatch"
+    source.write_text(counter_program)
+    subprocess.run([compiler,"-std=c++20","-O2","-Wall","-Wextra","-Werror",
+                    str(source),"-o",str(binary)],check=True)
+    subprocess.run([str(binary)],check=True,timeout=10)
