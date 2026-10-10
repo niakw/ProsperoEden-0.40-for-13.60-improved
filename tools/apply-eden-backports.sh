@@ -291,7 +291,7 @@ for key in ('enable == 0 || Eden::Encore::kGuestNetworkOffline',
             'const auto has_connection = !Eden::Encore::kGuestNetworkOffline'):
     if key not in nifm:
         raise SystemExit('Guest NIFM policy missing: ' + key)
-print('Encore guest-only DNS/BSD/NIFM offline isolation: PASS')
+print('Encore legacy guest DNS/BSD/NIFM patch shape: PASS (domain delta validated separately)')
 PYOFFLINE
 }
 apply_one "$root/headless/backports/eden-ps5-guest-offline.patch" "$eden/.encore-backport-guest-offline.sha256" validate_guest_offline
