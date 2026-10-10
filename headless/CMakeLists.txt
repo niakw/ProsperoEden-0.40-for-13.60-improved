@@ -2347,6 +2347,10 @@ void Initialize() {
         "${EDEN_PORT_DIR}/network_domain_rules.c"
         "${eden_app_crt}" "${PORT_ROOT}/src/lifecycle.c"
         "${PORT_BUILD_DIR}/app_heap.c")
+    # Guest DNS IPC and native launcher both call eden_network_host_blocked(),
+    # supplied once by eden-headless's native network_domain_rules.c.
+    # The guest derived DNS source includes the matching policy prototype.
+    target_include_directories(core PRIVATE "${EDEN_PORT_DIR}")
     target_compile_definitions(eden-headless PRIVATE PS5_NATIVE=1)
     if(EDEN_SPARSE_JIT_DEV)
         target_compile_definitions(eden-headless PRIVATE EDEN_SPARSE_JIT_DEV=1)
