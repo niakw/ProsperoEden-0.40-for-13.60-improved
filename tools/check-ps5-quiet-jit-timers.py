@@ -34,6 +34,8 @@ program=r"""
 static bool detailed=false;
 static unsigned callbacks=0;
 static unsigned long long elapsed=0;
+extern "C" bool eden_native_detailed_logging() noexcept __attribute__((weak));
+extern "C" void eden_jit_compile(unsigned, unsigned long long) __attribute__((weak));
 extern "C" bool eden_native_detailed_logging() noexcept {return detailed;}
 extern "C" void eden_jit_compile(unsigned core, unsigned long long ns) {
     assert(core==2);
