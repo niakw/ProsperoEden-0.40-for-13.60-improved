@@ -896,7 +896,8 @@ endif()
 # Profiling annotations and experimental spin-before-sleep exist only in diagnostic builds.
 if(EDEN_DEV_PROFILE)
     string(REPLACE "${idle_old}" [=[void PhysicalCore::Idle() {
-        const long long start = ::Eden::Performance::NowNs();
+        const bool profile_idle = ::Eden::Performance::detailed_gpu_profile.load(std::memory_order_relaxed);
+        const long long start = profile_idle ? ::Eden::Performance::NowNs() : 0;
         const unsigned spins = ::Eden::Performance::idle_spin_iterations.load(std::memory_order_relaxed);
         for (unsigned i = 0; i < spins && !__atomic_load_n(&m_is_interrupted, __ATOMIC_ACQUIRE); ++i)
             __builtin_ia32_pause();
@@ -906,7 +907,8 @@ if(EDEN_DEV_PROFILE)
             slept = !m_is_interrupted;
             m_on_interrupt.wait(lk, [this] { return m_is_interrupted; });
         }
-        ::Eden::Performance::CountIdle(m_core_index, ::Eden::Performance::NowNs() - start, slept);
+        if (profile_idle)
+            ::Eden::Performance::CountIdle(m_core_index, ::Eden::Performance::NowNs() - start, slept);
     }]=] physical_core_source "${physical_core_source}")
 endif()
 string(REPLACE "${prefetch_old}"
@@ -925,7 +927,7 @@ if(EDEN_DEV_PROFILE)
     if(ctrl_at LESS 0)
         message(FATAL_ERROR "Pinned nvhost_ctrl event wait changed")
     endif()
-    string(REPLACE "${ctrl_old}" "    const auto wait_start = ::Eden::Performance::NowNs();\n    event.wait_handle =\n        host1x_syncpoint_manager.RegisterHostAction(fence_id, target_value, [this, slot, wait_start]() {\n            ::Eden::Performance::AddSince(::Eden::Performance::guest_sync_wait, wait_start);\n            auto& event_ = events[slot];" ctrl_source "${ctrl_source}")
+    string(REPLACE "${ctrl_old}" "    const auto wait_start = ::Eden::Performance::detailed_gpu_profile.load(std::memory_order_relaxed) ? ::Eden::Performance::NowNs() : 0;\n    event.wait_handle =\n        host1x_syncpoint_manager.RegisterHostAction(fence_id, target_value, [this, slot, wait_start]() {\n            if (wait_start) ::Eden::Performance::AddSince(::Eden::Performance::guest_sync_wait, wait_start);\n            auto& event_ = events[slot];" ctrl_source "${ctrl_source}")
     write_derived("${PORT_BUILD_DIR}/nvhost_ctrl.cpp" "#include \"${EDEN_PORT_DIR}/performance.h\"\n${ctrl_source}")
     list(REMOVE_ITEM core_sources "hle/service/nvdrv/devices/nvhost_ctrl.cpp")
     list(APPEND core_sources "${PORT_BUILD_DIR}/nvhost_ctrl.cpp")
@@ -935,7 +937,7 @@ if(EDEN_DEV_PROFILE)
     if(producer_at LESS 0)
         message(FATAL_ERROR "Pinned buffer queue dequeue changed")
     endif()
-    string(REPLACE "${producer_old}" "        const auto dequeue_start = ::Eden::Performance::NowNs();\n${producer_old}\n        ::Eden::Performance::AddSince(::Eden::Performance::guest_dequeue_wait, dequeue_start);" producer_source "${producer_source}")
+    string(REPLACE "${producer_old}" "        const auto dequeue_start = ::Eden::Performance::detailed_gpu_profile.load(std::memory_order_relaxed) ? ::Eden::Performance::NowNs() : 0;\n${producer_old}\n        if (dequeue_start) ::Eden::Performance::AddSince(::Eden::Performance::guest_dequeue_wait, dequeue_start);" producer_source "${producer_source}")
     write_derived("${PORT_BUILD_DIR}/buffer_queue_producer.cpp" "#include \"${EDEN_PORT_DIR}/performance.h\"\n${producer_source}")
     list(REMOVE_ITEM core_sources "hle/service/nvnflinger/buffer_queue_producer.cpp")
     list(APPEND core_sources "${PORT_BUILD_DIR}/buffer_queue_producer.cpp")
@@ -1008,7 +1010,7 @@ if(EDEN_DEV_PROFILE)
     if(ipc_at LESS 0)
         message(FATAL_ERROR "Pinned SendSyncRequest changed")
     endif()
-    string(REPLACE "${ipc_old}" "    const auto ipc_start = ::Eden::Performance::NowNs();\n    const Result ipc_result = session->SendSyncRequest(kernel, message, buffer_size);\n    ::Eden::Performance::AddSince(::Eden::Performance::guest_ipc_wait, ipc_start);\n    R_RETURN(ipc_result);" ipc_source "${ipc_source}")
+    string(REPLACE "${ipc_old}" "    const auto ipc_start = ::Eden::Performance::detailed_gpu_profile.load(std::memory_order_relaxed) ? ::Eden::Performance::NowNs() : 0;\n    const Result ipc_result = session->SendSyncRequest(kernel, message, buffer_size);\n    if (ipc_start) ::Eden::Performance::AddSince(::Eden::Performance::guest_ipc_wait, ipc_start);\n    R_RETURN(ipc_result);" ipc_source "${ipc_source}")
     write_derived("${PORT_BUILD_DIR}/svc_ipc.cpp" "#include \"${EDEN_PORT_DIR}/performance.h\"\n${ipc_source}")
     list(REMOVE_ITEM core_sources "hle/kernel/svc/svc_ipc.cpp")
     list(APPEND core_sources "${PORT_BUILD_DIR}/svc_ipc.cpp")
