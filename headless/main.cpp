@@ -43,6 +43,7 @@
 #include "display_refresh.h"
 #include "log_pipe.h"
 #include "network_domain_rules.h"
+#include "network_audit.h"
 #include "mods.h"
 #include "glyph_overrides_runtime.h"
 #include "controller_applet.h"
@@ -558,6 +559,12 @@ int main(int argc, char** argv) {
         else
             Eden::BootTrace::Quiet(Eden::LogsDir());
         Eden::BootTrace::Line("logs ready; app=%s data=%s", Eden::AppDir().c_str(), Eden::UserDir().c_str());
+        // Opt-in only: no network audit file or filesystem writes while
+        // Detailed Logging is OFF. Accepted events pass through untouched to
+        // whichever DNS server NanoDNS or the PS5 has configured globally.
+        if (eden_network_audit_init(Eden::LogFile("network-accepted.log").c_str(),
+                                    persist_detailed_logs ? 1 : 0) != 0)
+            Eden::Report("network", "Optional network audit initialization unavailable");
         // Load the packaged list before any native HTTP or guest networking.
         // A missing/invalid hosts file must not silently become allow-all.
         if (eden_network_filter_load(Eden::AppFile("network-hosts.txt").c_str()) != 0) {
