@@ -76,7 +76,10 @@ static int mock_getsockopt(int fd, int level, int opt, void *value, socklen_t *l
 #include "ps5_net_compat.c"
 #undef setsockopt
 #undef getsockopt
-int main(void) {
+int main(int argc, char** argv) {
+    assert(argc == 2);
+    assert(eden_network_filter_load(argv[1]) == 0);
+    assert(eden_network_filter_count() >= 140);
     struct addrinfo hints = {0}, *addr = NULL;
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -96,9 +99,16 @@ int main(void) {
     freeaddrinfo(addr);
     assert(queried == 1 && pool_created == pool_destroyed);
     assert(resolver_created == resolver_destroyed);
+    // Both exact suffix and nested-subdomain blocks reject BEFORE sceNetResolver.
+    assert(getaddrinfo("api.ea.com", "443", &hints, &addr) == EAI_NONAME);
+    assert(getaddrinfo("c.test.cdn.nintendo.net", "443", &hints, &addr) == EAI_NONAME);
+    assert(getaddrinfo("not-ea.com", "443", &hints, &addr) == EAI_NONAME);
+    assert(queried == 2); // not-ea.com is NOT blocked: resolver mock was queried
+    assert(gethostbyname("login.api.ea.com") == NULL);
+    assert(queried == 2);
 
     assert(getaddrinfo("127.0.0.1", "80", &hints, &addr) == 0);
-    assert(queried == 1);
+    assert(queried == 2);
     freeaddrinfo(addr);
     assert(getaddrinfo("127.0.0.1", "not-a-port", &hints, &addr) == EAI_SERVICE);
     assert(getaddrinfo("127.0.0.1", "65536", &hints, &addr) == EAI_SERVICE);
@@ -115,7 +125,7 @@ int main(void) {
     assert(addr == NULL);
     hints.ai_flags = AI_NUMERICHOST;
     assert(getaddrinfo("api.nlib.cc", "443", &hints, &addr) == EAI_NONAME);
-    assert(queried == 2);
+    assert(queried == 3);
     hints.ai_family = AF_INET6;
     assert(getaddrinfo("::1", "443", &hints, &addr) == EAI_FAMILY);
     struct hostent *legacy = gethostbyname("api.nlib.cc");
@@ -127,7 +137,7 @@ int main(void) {
     assert(inet_ntop(AF_INET, &legacy_ip, legacy_text, sizeof(legacy_text)));
     assert(strcmp(legacy_text, "203.0.113.7") == 0);
     assert(gethostbyname("unresolvable.invalid") == NULL);
-    assert(queried == 4);
+    assert(queried == 5);
     assert(pool_created == pool_destroyed && resolver_created == resolver_destroyed);
     assert(__wrap_fcntl(17, F_DUPFD, 3) == 117);
     assert(__wrap_fcntl(17, F_SETFL, O_NONBLOCK) == 0);
@@ -154,5 +164,7 @@ with tempfile.TemporaryDirectory(prefix="encore-ps5-net-unit-") as tmp:
     assert cc is not None, "Clang is required for host sanitizer micro-test"
     subprocess.run([cc, "-std=c11", "-D_DEFAULT_SOURCE", "-Wall", "-Wextra", "-Werror",
                     "-fsanitize=address,undefined", "-I", str(compat.parent),
-                    str(source), "-o", str(binary)], check=True, env=env)
-    subprocess.run([str(binary)], check=True, env=env, timeout=8)
+                    str(source), str(root / "headless/network_domain_rules.c"),
+                    "-o", str(binary)], check=True, env=env)
+    subprocess.run([str(binary), str(root / "headless/network-hosts.txt")],
+                   check=True, env=env, timeout=8)
