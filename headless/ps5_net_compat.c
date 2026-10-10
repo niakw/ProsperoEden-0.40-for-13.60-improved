@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include "network_domain_rules.h"
 
 enum { EDEN_PS5_SO_NBIO = 0x1200 };
 
@@ -61,6 +62,8 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
     if (result == NULL)
         return EAI_FAIL;
     *result = NULL;
+    if (node != NULL && eden_network_host_blocked(node))
+        return EAI_NONAME; // launcher and games share the exact same denylist
     if (node == NULL && service == NULL)
         return EAI_NONAME;
     const int family = hints != NULL ? hints->ai_family : AF_UNSPEC;
@@ -167,7 +170,8 @@ struct hostent *gethostbyname(const char *name)
     static _Thread_local char hostname[256];
     static _Thread_local char *aliases[1];
     static _Thread_local char *addresses[2];
-    if (name == NULL || strlen(name) >= sizeof(hostname) ||
+    if (eden_network_host_blocked(name) ||
+        name == NULL || strlen(name) >= sizeof(hostname) ||
         eden_ps5_lookup(name, &address) != 0)
         return NULL;
     memcpy(hostname, name, strlen(name) + 1);
