@@ -114,3 +114,15 @@ The R296 host source and compiled audit suite passed on GitHub Actions
 A separate native PS5 test build must compile guest HLE, link the socket
 observers, verify the exact packaged hosts file and satisfy staged inventory.
 No release is published from this experimental build.
+
+
+## R297: distinguish locally allowed DNS from real guest resolver results
+
+The initial dns-allowed event is only Eden's local denylist verdict.
+R297 also emits dns-resolved or dns-error after the actual guest
+Network::GetAddressInfo call returns, so a request allowed by Eden but
+rejected upstream by NanoDNS or the globally configured DNS may show
+guest dns-allowed followed by guest dns-error.
+The read-only analyzer now separates guest from launcher outcomes and
+does not infer that a successful response must involve a network DNS
+packet: numeric literals or operating-system caches may also resolve.
