@@ -48,6 +48,10 @@ def verified_opengl_sdk_files():
     return files
 
 def check():
+    # A previously staged or partial package must not silently retain an old
+    # hosts list. Verify the actual installed file, not just its filename.
+    assert digest(APP / 'network-hosts.txt') == digest(ROOT / 'headless/network-hosts.txt'), (
+        'PS5 app contains missing/stale network hosts policy')
     frontend = json.loads((OUT / 'frontend.json').read_text())
     assert frontend.get('gpu_probe', False) == (b'EDEN_GPU_PROBE_PASS cases=36' in (OUT / 'llvm-pie.elf').read_bytes()), 'GPU probe receipt/binary mismatch'
     if frontend['guest_fixture'] == 'retail-game':
