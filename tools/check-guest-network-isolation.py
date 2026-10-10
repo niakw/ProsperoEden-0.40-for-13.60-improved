@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Fail-closed guest IPv4/DNS/NIFM policy and launcher independence preflight."""
+"""Single domain-denylist wiring across guest DNS/NIFM and launcher resolver."""
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 guest = (root / "headless/backports/eden-ps5-guest-offline.patch").read_text()
+domains = (root / "headless/backports/eden-ps5-guest-domain-filter.patch").read_text()
+hosts = (root / "headless/network-hosts.txt").read_text()
+resolver = (root / "headless/ps5_net_compat.c").read_text()
+package = (root / "tools/package-headless-native.sh").read_text()
 apply = (root / "tools/apply-eden-backports.sh").read_text()
 main = (root / "headless/main.cpp").read_text()
 http = (root / "headless/backports/eden-ps5-launcher-fast-http.patch").read_text()
@@ -15,10 +19,21 @@ assert guest.count("if (Eden::Encore::kGuestNetworkOffline) return {0, GetAddrIn
 assert "enable == 0 || Eden::Encore::kGuestNetworkOffline" in guest
 assert "const auto has_connection = !Eden::Encore::kGuestNetworkOffline" in guest
 assert "eden-ps5-guest-offline.patch" in apply
+assert "eden-ps5-guest-domain-filter.patch" in apply
+assert '.encore-backport-guest-domain-filter.sha256' in apply
+assert 'inline constexpr bool kGuestNetworkOffline = false;' in domains
+assert domains.count('if (eden_network_host_blocked(host.c_str())) return {0, GetAddrInfoError::NODATA};') == 2
+assert '#include "network_domain_rules.h"' in domains
 assert "GetAddrInfoError::NODATA" in apply
-assert "Settings::values.airplane_mode.SetValue(true);" in main
+assert "Settings::values.airplane_mode.SetValue(false);" in main
+assert "Settings::values.airplane_mode.SetValue(true);" not in main
+assert 'eden_network_filter_load(Eden::AppFile("network-hosts.txt").c_str())' in main
+assert 'eden_network_host_blocked(node)' in resolver
+assert 'eden_network_host_blocked(name)' in resolver
+assert 'cp "$root/headless/network-hosts.txt" "$app/network-hosts.txt"' in package
+assert 'nintendo.com' in hosts and 'ea.com' in hosts and 'gogcdn.net' in hosts
 
-# Native HTTPS must stay available to Home without re-enabling game IPC networking.
+# Native HTTPS remains available to Home and guest networking is enabled.
 assert 'Common::Net::MakeRequest("https://api.nlib.cc", endpoint)' in services
 assert 'Common::Net::MakeRequest("https://api.nlib.cc", metadata_endpoint)' in services
 assert 'const std::size_t timeout_seconds = url == "https://api.nlib.cc" ? 3 : 5;' in http
@@ -47,4 +62,4 @@ textures = (root / "headless/prosperoeden/pe/ui/textures.cpp").read_text()
 assert "if (image.missing && c.textures.brand() != 0)" not in widgets
 assert 'it->second.age >= retry_after' in textures
 assert 'retry_after = it->second.failed_loads <= 1 ? 0.45f' in textures
-print("Guest sockets/DNS/NIFM offline, independent launcher HTTPS and media fallback: PASS")
+print("Shared host+guest DNS/NIFM filtered connectivity and launcher HTTPS fallback: PASS")
