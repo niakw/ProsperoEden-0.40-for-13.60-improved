@@ -23,6 +23,9 @@ assert "file(READ \"${EDEN_PORT_DIR}/gpu_queue_stop_wait.inc\"" in cmake
 assert "write_derived(\"${PORT_BUILD_DIR}/include/common/bounded_threadsafe_queue.h\"" in cmake
 assert "state.queue.TryEmplace(std::move(command_data), fence, block)" in cmake
 assert "state.queue.EmplaceWaitWithStopToken(stop_source.get_token()," in cmake
+assert 'set(profiled_producer_wait' in cmake
+assert 'string(REPLACE "${producer_wait}" "${profiled_producer_wait}"' in cmake
+assert 'gpu_worker "${gpu_worker}")' in cmake
 assert "std::this_thread::sleep_for(std::chrono::microseconds(100));" not in cmake
 
 cpp = r"""
