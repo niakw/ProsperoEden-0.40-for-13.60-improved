@@ -96,3 +96,12 @@ The complete host regression suite passed on GitHub Actions
 A separate PS5 all-on test compilation is required to verify actual CMake
 generation, PS5 libc++ stop-token CV support and linker behavior before
 any physical console A/B. Do not publish an immutable release from this test.
+
+## R294 native integration fix
+
+An R294 native CI run failed in the worker-source test because the CMake
+`string(REPLACE ...)` instrumentation passed several separate string
+arguments instead of one replacement value. The generator now constructs
+`profiled_producer_wait` first and supplies **exactly one** replacement
+argument. A source test checks this CMake contract before rebuilding the
+native worker; the new host/guest hosts policy is otherwise unaffected.
