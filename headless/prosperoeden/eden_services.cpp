@@ -6,6 +6,7 @@
 #ifdef PS5_NATIVE
 #include "boot_trace.h"
 #include "log_pipe.h"
+#include "performance.h"
 #endif
 #include "diagnostics.h"
 #include "encore_overrides_runtime.h"
@@ -1348,6 +1349,10 @@ bool EdenServices::set_preferences(const pe::ui::Preferences& preferences) {
         // Apply the toggle immediately in the launcher: no hidden running
         // stderr/stdout writers and no growing emulator log when disabled.
         Eden::NativeLogs::SetDetailed(value.detailed_logging);
+        // The deep GPU/JIT hot-path counters must follow the live toggle.
+        // Otherwise disabling logs leaves costly diagnostics in-game.
+        Eden::Performance::detailed_gpu_profile.store(value.detailed_logging,
+                                                       std::memory_order_relaxed);
         eden_network_audit_enable(value.detailed_logging ? 1 : 0);
         if (!value.detailed_logging) {
             Eden::BootTrace::Quiet(Eden::LogsDir());
