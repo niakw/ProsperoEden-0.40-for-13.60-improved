@@ -106,3 +106,12 @@ Preflight #38086688650 completed SUCCESS, including the compiled matcher and
 source-level guest/host wiring checks. This does not yet exercise the native
 PS5 SDK linker, patched guest sockets, packaging or hardware network behavior.
 The next all-on CI build is a **test package only**, not a release.
+
+## Regression update
+
+The native PS5 resolver mock now links the **actual** packaged-policy C
+engine. It verifies that blocked names never reach sceNetResolver, that
+lookalike names still reach it, that local numeric IPv4 resolves, and that
+unsupported IPv6 retains the SDK's EAI_FAMILY behavior. The cached legacy
+backport validator accepts the already-overlaid domain-mode header, while
+the new separate validator still requires guest network enabled and filtered.
