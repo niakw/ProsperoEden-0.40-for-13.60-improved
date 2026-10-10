@@ -19,6 +19,7 @@ assert len(rules) >= 140
 assert len(rules) == len(set(rules))
 for domain in ("nintendo.com","nintendo.net","nintendoswitch.com.cn",
                "nintendods.cz","ea.com","epicgames.com","ubi-services.com",
+               "microsoft.com","phoenix-api.wbagora.com",
                "xboxlive.com","pokemon.com","gogcdn.net",
                "scsi-upload-lp1.s3.us-west-2.amazonaws.com"):
     assert domain in rules
@@ -54,10 +55,15 @@ int main(int argc, char** argv) {
     yes("www.pokemon.co.jp");
     yes("forge.nintendods.cz");
     no("not-ea.com");
-    // These names were blocked by the old hardcoded Eden table but are
-    // absent from the supplied policy; allow them through to normal DNS.
-    no("microsoft.com");
-    no("phoenix-api.wbagora.com");
+    // The old upstream hidden list is now removed. These two entries are
+    // explicitly present in our own immutable packaged hosts policy.
+    yes("microsoft.com");
+    yes("login.microsoft.com");
+    yes("cdn.login.microsoft.com");
+    yes("phoenix-api.wbagora.com");
+    yes("api.phoenix-api.wbagora.com");
+    no("not-microsoft.com");
+    no("phoenix-api.wbagora.com.evil.test");
     no("battlenet.com.evil.test");
     no("ea.com.evil.example");
     no("fake-nintendo.com");
