@@ -29,6 +29,8 @@ assert "remaining_legacy_dns" in cmake and "IsBlockedHost" in cmake
 assert "GetAddressInfo(host, /*service*/ std::nullopt)" in cmake
 assert "GetAddressInfo(host, service)" in cmake
 assert "dns-resolved" in cmake and "dns-error" in cmake
+assert "foreach(guest_dns_entry IN ITEMS by_name by_address)" in cmake
+assert "if(guest_dns_entry STREQUAL" in cmake
 assert '.encore-backport-guest-domain-filter.sha256' in apply
 assert 'inline constexpr bool kGuestNetworkOffline = false;' in domains
 assert domains.count('if (eden_network_host_blocked(host.c_str())) return {0, GetAddrInfoError::NODATA};') == 2
