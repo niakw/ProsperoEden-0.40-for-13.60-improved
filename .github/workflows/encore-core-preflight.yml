@@ -26,7 +26,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends nlohmann-json3-dev libboost-container-dev clang-18
 
-      - name: Audit generic graphics, JIT, runtime and offline game networking
+      - name: Audit generic graphics, JIT, runtime and filtered game networking
         run: |
           set -euxo pipefail
           python3 -B tools/check-python-source-syntax.py
@@ -46,6 +46,7 @@ jobs:
           python3 -B tools/check-runtime-frame-budget.py
           python3 -B tools/check-universal-emulation-policy.py
           python3 -B tools/check-network-domain-policy.py
+          python3 -B tools/check-ps5-net-unit.py
           python3 -B tools/check-guest-network-isolation.py
           python3 -B tools/check-fc27-hle-compat.py
           python3 -B tools/check-game-liveness.py
