@@ -50,6 +50,8 @@ cp "$root/assets/icon0.png" "$app/sce_sys/icon0.png"
 cp "$root/assets/icon0.dds" "$app/sce_sys/icon0.dds"
 rm -rf "$app/ui"
 cp -a "$root/headless/prosperoeden/ui" "$app/ui"
+# Read-only embedded hosts policy. Release must never lose this file.
+cp "$root/headless/network-hosts.txt" "$app/network-hosts.txt"
 rm -f "$app/ui/art/backdrop.tga" "$app/ui/art/backdrop-blur.tga"
 # Keep complete legal notices inside the title itself so a standalone .ffpfsc install never
 # separates the binary from the GPL and third-party license texts that accompany it.
