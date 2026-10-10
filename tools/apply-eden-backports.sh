@@ -291,6 +291,26 @@ print('Encore guest-only DNS/BSD/NIFM offline isolation: PASS')
 PYOFFLINE
 }
 apply_one "$root/headless/backports/eden-ps5-guest-offline.patch" "$eden/.encore-backport-guest-offline.sha256" validate_guest_offline
+# The previous immutable offline patch stays in the cache unchanged. This
+# second independently hashed delta restores guest sockets/NIFM and blocks
+# only hostnames listed by the shared launcher+guest policy.
+validate_guest_domain_filter() {
+python3 - "$eden" <<'PYDOMAINS'
+from pathlib import Path
+import sys
+r=Path(sys.argv[1])
+policy=(r/'src/core/hle/service/sockets/encore_guest_network_policy.h').read_text()
+dns=(r/'src/core/hle/service/sockets/sfdnsres.cpp').read_text()
+if 'inline constexpr bool kGuestNetworkOffline = false;' not in policy:
+    raise SystemExit('Guest sockets must be permitted by domain-filter profile')
+if dns.count('if (eden_network_host_blocked(host.c_str())) return {0, GetAddrInfoError::NODATA};') != 2:
+    raise SystemExit('Guest DNS not filtered in both entry points')
+if '#include "network_domain_rules.h"' not in dns:
+    raise SystemExit('Shared host+guest filter header missing')
+print('Encore guest-only network whitelist-by-default and common domain-denylist: PASS')
+PYDOMAINS
+}
+apply_one "$root/headless/backports/eden-ps5-guest-domain-filter.patch" "$eden/.encore-backport-guest-domain-filter.sha256" validate_guest_domain_filter
 # Quarantine: this dummy-thread wait proposal can clear a wait-queue pointer
 # while ThreadState::Waiting still holds. NotifyAvailable/CancelWait in pinned Eden
 # may dereference that pointer. A patch-apply test is NOT a correctness test.
