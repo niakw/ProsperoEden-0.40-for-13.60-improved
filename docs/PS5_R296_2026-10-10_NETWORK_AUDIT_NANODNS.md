@@ -103,6 +103,10 @@ logs remain authoritative for traffic outside the intercepted APIs.
 No FC27 or BOTW benchmark result has been inferred from these source changes.
 The logging path remains disabled in normal gameplay.
 
+## Offline report for investigating unexplained network traffic
+
+Run `python3 tools/analyze-ps5-network-audit.py logs/network-accepted.log.prev logs/network-accepted.log` after collecting a diagnostic session. The read-only report ranks locally denied DNS queries, permitted guest lookups, successful native DNS resolutions, API-level connects and TX/RX bytes by endpoint. It **does not add guest and native traffic together** because both layers may observe the same bytes; it does not resolve IP addresses through the network or assign a publisher to an IP without outside evidence. There is a `--self-test` fixture in CI. Inspect IP-only endpoints against NanoDNS/router logs to determine whether they were blocked or transmitted beyond Eden.
+
 ## Native all-on gate
 
 The R296 host source and compiled audit suite passed on GitHub Actions
