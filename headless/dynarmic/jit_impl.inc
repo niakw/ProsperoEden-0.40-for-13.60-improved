@@ -287,19 +287,22 @@ private:
                 eden_state.store(previous, std::memory_order_seq_cst);
                 continue;
             }
-            const u64 start = EdenClockNs();
+            // R299: profiling is opt-in. Quiet gameplay must not read the
+            // JIT clock for every compiled block.
+            const bool timed = eden_native_detailed_logging && eden_native_detailed_logging();
+            const u64 start = timed ? EdenClockNs() : 0;
             const auto get_code = [this](u64 vaddr) { return conf.callbacks->MemoryReadCode(vaddr); };
             // LocationDescriptor ctor() does important ops (like tflags) do not skip
             auto const arch_descriptor = A64::LocationDescriptor{descriptor};
             ir_block.Reset(arch_descriptor);
             A64::Translate(ir_block, arch_descriptor, get_code, {conf.define_unpredictable_behaviour, conf.wall_clock_cntpct});
-            const u64 translated = EdenClockNs();
+            const u64 translated = timed ? EdenClockNs() : 0;
             Optimization::Optimize(ir_block, conf, polyfill_options);
-            const u64 optimized = EdenClockNs();
+            const u64 optimized = timed ? EdenClockNs() : 0;
             emitter.eden_pending_sites.clear();
             const auto emitted = emitter.Emit(ir_block, false);
             eden_state.store(previous, std::memory_order_seq_cst);
-            EdenReportCompile(descriptor, start, translated, optimized);
+            if (timed) EdenReportCompile(descriptor, start, translated, optimized);
             eden_space.store(block_of_code.SpaceRemaining(), std::memory_order_relaxed);
 
             std::lock_guard lock{group->mutex};
@@ -455,14 +458,16 @@ private:
             EdenWaitWhileClearing();  // another member is clearing everything
             return;
         }
-        const auto clear_started = std::chrono::steady_clock::now();
+        const bool report_clear = eden_native_detailed_logging && eden_native_detailed_logging();
+        const auto clear_started = report_clear ? std::chrono::steady_clock::now()
+                                          : std::chrono::steady_clock::time_point{};
         std::vector<Impl*> members;
         {
             std::lock_guard lock{group->mutex};
             for (void* member : group->members)
                 members.push_back(static_cast<Impl*>(member));
         }
-        std::printf("EDEN_JIT_CLEAR_BEGIN core=%u members=%zu epoch=%llu\n",
+        if (report_clear) std::printf("EDEN_JIT_CLEAR_BEGIN core=%u members=%zu epoch=%llu\n",
                     unsigned(conf.processor_id), members.size(),
                     static_cast<unsigned long long>(group->epoch.load(std::memory_order_relaxed)));
         for (Impl* member : members)
@@ -521,12 +526,14 @@ private:
             group->clearing.store(false, std::memory_order_seq_cst);
         }
         group->parked.notify_all();
-        const auto clear_us = std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - clear_started).count();
-        std::printf("EDEN_JIT_CLEAR_END core=%u members=%zu epoch=%llu elapsed_us=%lld\n",
+        if (report_clear) {
+            const auto clear_us = std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now() - clear_started).count();
+            std::printf("EDEN_JIT_CLEAR_END core=%u members=%zu epoch=%llu elapsed_us=%lld\n",
                     unsigned(conf.processor_id), members.size(),
                     static_cast<unsigned long long>(group->epoch.load(std::memory_order_relaxed)),
                     static_cast<long long>(clear_us));
+        }
     }
 
     // What generated code reads from the JIT state instead of embedding (a64_jitstate.h).
@@ -545,7 +552,8 @@ private:
 
     void EdenReportPressure() {
         static thread_local unsigned pressure_count;
-        if (++pressure_count <= 200)
+        if (eden_native_detailed_logging && eden_native_detailed_logging() &&
+            ++pressure_count <= 200)
             std::printf("EDEN_JIT_PRESSURE core=%u capacity=%u remaining=%zu count=%u mono_ns=%lld\n",
                         unsigned(conf.processor_id), unsigned(conf.code_cache_size), block_of_code.SpaceRemaining(),
                         pressure_count, static_cast<long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(
