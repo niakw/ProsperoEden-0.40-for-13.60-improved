@@ -46,6 +46,12 @@ replace('''   FILE *const file = fopen("/app0/sce_sys/param.json", "rb");
 ''', '''   const char *const asked = getenv("EDEN_VIDEOOUT_120HZ");
    return asked != NULL && asked[0] == '1';
 ''')
+# From upstream ProsperoEden 1f7fcf36 (#95): VRR screens can report a 48Hz
+# vblank during idle while their 120Hz output is valid. Only a measured
+# stable 59.94/60Hz fallback (15–18.5ms vblank) justifies reverting 120Hz.
+# This only runs when high refresh is requested and the TV supports it.
+replace('         if (period > VIDEOOUT_HIGH_REFRESH_LIMIT_NS) {',
+        '         if (period > UINT64_C(15000000) && period < UINT64_C(18500000)) {')
 # Say so when the display follows, as the pinned source does when it does not.
 replace('''                    (double)period / 1e6);
          }
