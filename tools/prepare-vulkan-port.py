@@ -90,11 +90,13 @@ void RasterizerVulkan::DispatchCompute() {"""),
     ('        std::scoped_lock lock{texture_cache.mutex};\n        texture_cache.WriteMemory(addr, size);\n    }\n    pipeline_cache.InvalidateRegion(addr, size);',
      '        ::Eden::Performance::GuestCacheLock(texture_cache.mutex);\n'
      '        std::lock_guard lock{texture_cache.mutex, std::adopt_lock};\n        texture_cache.WriteMemory(addr, size);\n    }\n    pipeline_cache.InvalidateRegion(addr, size);'),
-    # Make the dispatch cadence runtime-tunable. Shipping keeps Eden's upstream 8-draw cadence;
-    # wider 16-512 draw batching remains available only through dev-settings dispatch_draws=N
-    # until the earlier 64-draw optimization is requalified against PS5 soft hangs.
-    ('    static constexpr u32 CHECK_MASK = 7;\n#endif // __ANDROID__\n\n    static_assert(DRAWS_TO_DISPATCH % (CHECK_MASK + 1) == 0);\n',
-     '    const u32 CHECK_MASK = ::Eden::Performance::dispatch_mask.load(std::memory_order_relaxed);\n#endif // __ANDROID__\n\n'),
+    # From upstream ProsperoEden 0dd9dd0 (#102): submitting after 4096 draws
+    # can exceed the PS5 GPU watchdog (VK_ERROR_DEVICE_LOST). Cap command
+    # buffers at 512 draws, keeping Encore's current worker handoff cadence
+    # and runtime diagnostics unchanged. Replace the FULL platform ifdef.
+    ('#ifdef __ANDROID__\n    static constexpr u32 DRAWS_TO_DISPATCH = 512;\n    static constexpr u32 CHECK_MASK = 3;\n#else\n    static constexpr u32 DRAWS_TO_DISPATCH = 4096;\n    static constexpr u32 CHECK_MASK = 7;\n#endif // __ANDROID__\n\n    static_assert(DRAWS_TO_DISPATCH % (CHECK_MASK + 1) == 0);\n',
+     '    static constexpr u32 DRAWS_TO_DISPATCH = 512;\n'
+     '    const u32 CHECK_MASK = ::Eden::Performance::dispatch_mask.load(std::memory_order_relaxed);\n\n'),
     # Per-draw count for the GPU-thread report (dispatch time per draw).
     ('    FlushWork();\n    gpu_memory->FlushCaching();\n\n    GraphicsPipeline* const pipeline{pipeline_cache.CurrentGraphicsPipeline()};',
      '    if (::Eden::Performance::detailed_gpu_profile.load(std::memory_order_relaxed))\n'
