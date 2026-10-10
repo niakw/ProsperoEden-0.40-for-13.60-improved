@@ -768,7 +768,7 @@ foreach(bits 32 64)
             set(sample_fp "m_jit->Fpscr()")
         endif()
         string(REPLACE "    return TranslateHaltReason(m_jit->Run());"
-            "    ::Eden::Performance::SampleCpu(m_core_index, 0, ${sample_pc}, GetSvcNumber(), ${sample_fp});\n    ::Eden::Performance::cpu_state[m_core_index].phase.store(::Eden::Performance::CpuPhase::Guest, std::memory_order_release);\n    const auto halt = m_jit->Run();\n    ::Eden::Performance::cpu_state[m_core_index].phase.store(::Eden::Performance::CpuPhase::Kernel, std::memory_order_release);\n    ::Eden::Performance::SampleCpu(m_core_index, 0, ${sample_pc}, GetSvcNumber(), ${sample_fp});\n    return TranslateHaltReason(halt);"
+            "    const bool eden_detailed_cpu_sample = ::Eden::Performance::detailed_gpu_profile.load(std::memory_order_relaxed);\n    if (eden_detailed_cpu_sample) ::Eden::Performance::SampleCpu(m_core_index, 0, ${sample_pc}, GetSvcNumber(), ${sample_fp});\n    ::Eden::Performance::cpu_state[m_core_index].phase.store(::Eden::Performance::CpuPhase::Guest, std::memory_order_release);\n    const auto halt = m_jit->Run();\n    ::Eden::Performance::cpu_state[m_core_index].phase.store(::Eden::Performance::CpuPhase::Kernel, std::memory_order_release);\n    if (eden_detailed_cpu_sample) ::Eden::Performance::SampleCpu(m_core_index, 0, ${sample_pc}, GetSvcNumber(), ${sample_fp});\n    return TranslateHaltReason(halt);"
             wrapper "${wrapper}")
     endif()
     if(EDEN_DEV_PROFILE)
