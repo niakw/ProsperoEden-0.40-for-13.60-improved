@@ -2237,9 +2237,12 @@ ${paths_source}")
     # Record the real guest resolver RESULT after it completes. A locally
     # allowed request can still fail due to NanoDNS or upstream global DNS;
     # dns-allowed is not equivalent to dns-resolved.
-    foreach(guest_dns_lookup IN ITEMS
-        "    auto res_v = Network::GetAddressInfo(host, /*service*/ std::nullopt);"
-        "    auto res_v = Network::GetAddressInfo(host, service);")
+    foreach(guest_dns_entry IN ITEMS by_name by_address)
+        if(guest_dns_entry STREQUAL "by_name")
+            set(guest_dns_lookup "    auto res_v = Network::GetAddressInfo(host, /*service*/ std::nullopt);")
+        else()
+            set(guest_dns_lookup "    auto res_v = Network::GetAddressInfo(host, service);")
+        endif()
         string(FIND "${audited_dns}" "${guest_dns_lookup}" guest_lookup_offset)
         if(guest_lookup_offset LESS 0)
             message(FATAL_ERROR "Pinned guest DNS GetAddressInfo call changed")
