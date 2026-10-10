@@ -55,9 +55,9 @@ and GPU detailed profile, but `headless/dynarmic/jit_impl.inc` and
 - R298 PS5 all-on native build [#38091399837](https://github.com/niakw/Prospero.Eden-Encore/actions/runs/38091399837)
   completed SUCCESS, with matching test-app and symbols artifacts; it compiled
   commit `45963a8b` **before R299**. It cannot validate R299.
-- R299 source-only preflight must run against its final commit, including the
-  extracted shared-JIT counter C++20 test. A subsequent separate native PS5
-  compilation is needed before installation or FC27/BOTW hardware comparisons.
+- R299 host source-only preflight [#38092108026](https://github.com/niakw/Prospero.Eden-Encore/actions/runs/38092108026) completed **SUCCESS** including C++20 real-fragment shared-JIT counter test, Sony mspace UBSan/TSan, approved UI checks and the diff gate.
+- The separate native PS5 all-on build is requested by this documentation-only
+  commit and must finish before R299 installation or FC27/BOTW comparisons.
 - Identify the actual late-match CPU guest/hot-block source with bounded
   opt-in sampling, accurate time-window alignment and HLE/kernel wait
   classification. Compare identical gameplay scenes, same graphics settings
