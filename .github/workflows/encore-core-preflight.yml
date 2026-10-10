@@ -47,6 +47,7 @@ jobs:
           python3 -B tools/check-universal-emulation-policy.py
           python3 -B tools/check-network-domain-policy.py
           python3 -B tools/check-network-accepted-audit.py
+          python3 -B tools/analyze-ps5-network-audit.py --self-test
           python3 -B tools/check-ps5-net-unit.py
           python3 -B tools/check-guest-network-isolation.py
           python3 -B tools/check-fc27-hle-compat.py
