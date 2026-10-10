@@ -20,6 +20,15 @@ assert "enable == 0 || Eden::Encore::kGuestNetworkOffline" in guest
 assert "const auto has_connection = !Eden::Encore::kGuestNetworkOffline" in guest
 assert "eden-ps5-guest-offline.patch" in apply
 assert "eden-ps5-guest-domain-filter.patch" in apply
+# PS5's built-in upstream substring domain blocker must not coexist with
+# network-hosts.txt: an Eden-allowed domain must reach the normal DNS layer.
+cmake = (root / "headless/CMakeLists.txt").read_text()
+assert "static const constexpr std::array blockedDomains = {" in cmake
+assert "old_dns_list_start" in cmake and "old_dns_list_end" in cmake
+assert "remaining_legacy_dns" in cmake and "IsBlockedHost" in cmake
+assert "GetAddressInfo(host, /*service*/ std::nullopt)" in cmake
+assert "GetAddressInfo(host, service)" in cmake
+assert "dns-resolved" in cmake and "dns-error" in cmake
 assert '.encore-backport-guest-domain-filter.sha256' in apply
 assert 'inline constexpr bool kGuestNetworkOffline = false;' in domains
 assert domains.count('if (eden_network_host_blocked(host.c_str())) return {0, GetAddrInfoError::NODATA};') == 2
