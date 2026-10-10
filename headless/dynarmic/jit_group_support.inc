@@ -20,7 +20,11 @@ struct alignas(64) EdenPathCounters {
     std::array<std::atomic<unsigned long long>, EdenPathCount> values{};
 };
 std::array<EdenPathCounters, 4> eden_path{};
+// R299: the path counters are diagnostic, not emulator state. Avoid shared
+// atomic writes during normal play; live Detailed Logging still enables them.
+// The weak callback is declared by the pinned generated a64_interface.cpp.
 void EdenCount(u32 core, EdenPath what, unsigned long long amount = 1) {
+    if (!eden_native_detailed_logging || !eden_native_detailed_logging()) return;
     eden_path[core < eden_path.size() ? core : eden_path.size() - 1].values[what].fetch_add(amount, std::memory_order_relaxed);
 }
 std::mutex eden_groups_mutex;
