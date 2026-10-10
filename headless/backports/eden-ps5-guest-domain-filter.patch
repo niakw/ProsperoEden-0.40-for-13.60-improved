@@ -1,0 +1,35 @@
+--- a/src/core/hle/service/sockets/sfdnsres.cpp
++++ b/src/core/hle/service/sockets/sfdnsres.cpp
+@@ -14,6 +14,7 @@
+ #include "core/hle/service/ipc_helpers.h"
+ #include "core/hle/service/sockets/sfdnsres.h"
+ #include "core/hle/service/sockets/encore_guest_network_policy.h"
++#include "network_domain_rules.h"
+ #include "core/hle/service/sockets/sockets.h"
+ #include "core/hle/service/sockets/sockets_translate.h"
+ #include "core/internal_network/network.h"
+@@ -206,6 +207,7 @@
+     // No host DNS for emulated titles, regardless of destination. The
+     // launcher artwork uses Common::Net::MakeRequest, not this guest IPC.
+     if (Eden::Encore::kGuestNetworkOffline) return {0, GetAddrInfoError::NODATA};
++    if (eden_network_host_blocked(host.c_str())) return {0, GetAddrInfoError::NODATA};
+ 
+     // Prevent resolution of Nintendo servers
+     if (IsBlockedHost(host)) {
+@@ -326,6 +328,7 @@
+     // No host DNS for emulated titles, regardless of destination. The
+     // launcher artwork uses Common::Net::MakeRequest, not this guest IPC.
+     if (Eden::Encore::kGuestNetworkOffline) return {0, GetAddrInfoError::NODATA};
++    if (eden_network_host_blocked(host.c_str())) return {0, GetAddrInfoError::NODATA};
+ 
+     // Prevent resolution of Nintendo servers
+     if (IsBlockedHost(host)) {
+--- a/src/core/hle/service/sockets/encore_guest_network_policy.h
++++ b/src/core/hle/service/sockets/encore_guest_network_policy.h
+@@ -6,5 +6,5 @@
+ // mutable emulated airplane_mode setting as a security boundary: NIFM IPC can
+ // change it. Keep this policy immutable across every emulated title/session.
+ namespace Eden::Encore {
+-inline constexpr bool kGuestNetworkOffline = true;
++inline constexpr bool kGuestNetworkOffline = false;
+ }
