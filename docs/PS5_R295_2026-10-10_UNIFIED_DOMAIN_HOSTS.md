@@ -67,6 +67,30 @@ for ordinary suffix rules. This is a custom application-domain file,
   reproducible cached-source migration. The new domain-based delta gets
   its own receipt and validator.
 
+## R297: remove the second, hidden Eden DNS blocklist
+
+The pinned upstream Eden emulator contains a hardcoded `blockedDomains`
+array and substring-based `IsBlockedHost(host)` check in the guest DNS
+service. It rejects some names absent from the user-supplied domain policy
+(including `microsoft.com` and `phoenix-api.wbagora.com`), and can falsely
+block unrelated names merely containing a matching substring.
+
+On PS5 only, source generation now removes this old table **and both
+short-circuit checks** from the derived guest DNS service. The
+`network-hosts.txt` file remains the **only internal DNS denylist**.
+Domains allowed by it continue through the existing resolver, where
+NanoDNS/router/global DNS can still reject them. No global DNS settings,
+packet contents or routes are changed.
+
+The detailed network audit also distinguishes `dns-allowed` (passed the
+local list, no assurance of final resolution) from a new guest
+`dns-resolved` / `dns-error` event emitted **after** the actual
+`Network::GetAddressInfo` call. A resolved numeric IP or local cache does
+not prove an on-the-wire DNS query to NanoDNS.
+
+The transformation is pinned-source checked and requires a new native build
+and PS5 validation.
+
 ## Important network limits
 
 This **cannot guarantee** that all communications to the organizations
