@@ -276,8 +276,12 @@ p = (r / 'src/core/hle/service/sockets/encore_guest_network_policy.h').read_text
 bsd = (r / 'src/core/hle/service/sockets/bsd.cpp').read_text()
 dns = (r / 'src/core/hle/service/sockets/sfdnsres.cpp').read_text()
 nifm = (r / 'src/core/hle/service/nifm/nifm.cpp').read_text()
-if 'inline constexpr bool kGuestNetworkOffline = true;' not in p:
-    raise SystemExit('Guest network policy must be immutable offline')
+if not any('inline constexpr bool kGuestNetworkOffline = ' + value + ';' in p
+           for value in ('true', 'false')):
+    raise SystemExit('Legacy guest BSD/NIFM policy marker missing')
+# The separately hashed domain-policy patch may already be present in an
+# extracted Eden cache. Its false value must NOT invalidate the old receipt.
+# validate_guest_domain_filter below enforces the final false+DNS condition.
 if 'if (Eden::Encore::kGuestNetworkOffline) return {-1, Errno::NOTCONN};' not in bsd:
     raise SystemExit('Guest BSD socket allocation is not blocked')
 if dns.count('if (Eden::Encore::kGuestNetworkOffline) return {0, GetAddrInfoError::NODATA};') != 2:
