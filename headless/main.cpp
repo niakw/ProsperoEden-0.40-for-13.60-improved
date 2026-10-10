@@ -1134,10 +1134,10 @@ int main(int argc, char** argv) {
         Eden::Performance::cache_lock_spins.store(0, std::memory_order_relaxed);
 #endif
 #ifdef PS5_NATIVE
-        // Host HTTPS (launcher Nlib/catalog) remains available, but emulated
-        // Switch games are offline-only. The pinned HLE backport separately
-        // rejects guest DNS/socket calls even if a guest toggles NIFM Wi-Fi.
-        Settings::values.airplane_mode.SetValue(true);
+        // Guest network is now enabled: only the packaged hosts denylist
+        // rejects designated publisher domains. Do not force airplane mode
+        // true on every game launch (the old blanket offline behavior).
+        Settings::values.airplane_mode.SetValue(false);
         const auto performance_policy = Eden::EncorePerformance::ForTier(runtime_performance_profile);
 #endif
         #ifdef EDEN_PS5_OPENGL
