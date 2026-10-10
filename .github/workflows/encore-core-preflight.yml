@@ -36,6 +36,7 @@ jobs:
           python3 -B tools/check-ps5-quiet-cpu-io-clocks.py
           python3 -B tools/check-ps5-quiet-guest-entry.py
           python3 -B tools/check-ps5-quiet-gpu-hotpaths.py
+          python3 -B tools/check-ps5-upstream-fixes-r302.py
           python3 -B tools/check-ps5-quiet-jit-timers.py
           python3 -B tools/check-ps5-gpu-producer-wake.py
           python3 -B tools/check-ps5-crash-only-logging.py
