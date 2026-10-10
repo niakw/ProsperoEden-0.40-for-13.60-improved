@@ -78,6 +78,8 @@ take2games.com
 2kcoretech.online
 
 # Microsoft game services
+# Explicitly requested: this also blocks every subdomain of microsoft.com.
+microsoft.com
 minecraft.net
 minecraftservices.com
 mojang.com
@@ -111,6 +113,8 @@ bethesda.net
 bethesda.com
 zenimax.com
 gearboxsoftware.com
+# Warner Bros. / Hogwarts Legacy online service; suffix includes API children.
+phoenix-api.wbagora.com
 wbgames.com
 wbplay.com
 warnerbrosgames.com
