@@ -614,7 +614,7 @@ endif()
     if(PS5_NATIVE)
         # Every whole-cache evacuation (first 200 per core, with the monotonic time the
         # performance reports use) and a counter for them (eden_jit_evacuation).
-        set(pressure_log "            static thread_local unsigned pressure_count;\n            if (++pressure_count <= 200) std::printf(\"EDEN_JIT_PRESSURE core=%u capacity=%u remaining=%zu count=%u mono_ns=%lld\\n\", unsigned(conf.processor_id), unsigned(conf.code_cache_size), block_of_code.SpaceRemaining(), pressure_count, static_cast<long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()));\n            if (eden_jit_evacuation) eden_jit_evacuation(unsigned(conf.processor_id));")
+        set(pressure_log "            static thread_local unsigned pressure_count;\n            if (eden_native_detailed_logging && eden_native_detailed_logging() && ++pressure_count <= 200) std::printf(\"EDEN_JIT_PRESSURE core=%u capacity=%u remaining=%zu count=%u mono_ns=%lld\\n\", unsigned(conf.processor_id), unsigned(conf.code_cache_size), block_of_code.SpaceRemaining(), pressure_count, static_cast<long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()));\n            if (eden_jit_evacuation) eden_jit_evacuation(unsigned(conf.processor_id));")
     endif()
     string(REPLACE "${pressure_site}"
         "${pressure_log}\n${pressure_site}"
@@ -626,7 +626,27 @@ endif()
         if(compile_site_at LESS 0)
             message(FATAL_ERROR "Pinned JIT block lookup changed.")
         endif()
-        string(REPLACE "${compile_site}" "${compile_site}        struct EdenCompileTimer {\n            unsigned core;\n            std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();\n            ~EdenCompileTimer() {\n                if (eden_jit_compile)\n                    eden_jit_compile(core, static_cast<unsigned long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count()));\n            }\n        } eden_compile_timer{unsigned(conf.processor_id)};\n" jit_source "${jit_source}")
+        # R298: zero per-block clock reads with Detailed Logging OFF.
+        # Keep per-core compilation timings with logging ON, where the
+        # diagnostic collection is explicitly requested by the user.
+        set(quiet_jit_timer [=[
+        struct EdenCompileTimer {
+            unsigned core;
+            bool active;
+            std::chrono::steady_clock::time_point start{};
+            explicit EdenCompileTimer(unsigned c) : core(c),
+                active(eden_native_detailed_logging && eden_native_detailed_logging()) {
+                if (active) start = std::chrono::steady_clock::now();
+            }
+            ~EdenCompileTimer() {
+                if (active && eden_jit_compile)
+                    eden_jit_compile(core, static_cast<unsigned long long>(
+                        std::chrono::duration_cast<std::chrono::nanoseconds>(
+                            std::chrono::steady_clock::now() - start).count()));
+            }
+        } eden_compile_timer{unsigned(conf.processor_id)};
+]=])
+        string(REPLACE "${compile_site}" "${compile_site}${quiet_jit_timer}" jit_source "${jit_source}")
         if(EDEN_JIT_COMPILE_BATCH)
             # Development: the compile phases of every block (eden_jit_phases).
             set(phase_old "            A64::Translate(ir_block, arch_descriptor, get_code, {conf.define_unpredictable_behaviour, conf.wall_clock_cntpct});\n            Optimization::Optimize(ir_block, conf, polyfill_options);\n            const auto entrypoint = emitter.Emit(ir_block, false).entrypoint;")
@@ -655,7 +675,7 @@ endif()
     if(EDEN_SHARED_JIT)
         eden_shared_jit_interface()
     endif()
-    write_derived("${PORT_BUILD_DIR}/a64_interface.cpp" "#include <chrono>\n#include <cstdio>\n#include <new>\nextern \"C\" void eden_jit_evacuation(unsigned core) __attribute__((weak));\nextern \"C\" void eden_jit_compile(unsigned core, unsigned long long ns) __attribute__((weak));\n${jit_source}")
+    write_derived("${PORT_BUILD_DIR}/a64_interface.cpp" "#include <chrono>\n#include <cstdio>\n#include <new>\nextern \"C\" bool eden_native_detailed_logging() noexcept __attribute__((weak));\nextern \"C\" void eden_jit_evacuation(unsigned core) __attribute__((weak));\nextern \"C\" void eden_jit_compile(unsigned core, unsigned long long ns) __attribute__((weak));\n${jit_source}")
     get_target_property(jit_sources dynarmic SOURCES)
     list(FILTER jit_sources EXCLUDE REGEX "(^|/)a64_interface\\.cpp$")
     set_property(TARGET dynarmic PROPERTY SOURCES "${jit_sources}")
