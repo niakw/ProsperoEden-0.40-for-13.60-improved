@@ -79,6 +79,7 @@ static int mock_getsockopt(int fd, int level, int opt, void *value, socklen_t *l
 int main(int argc, char** argv) {
     assert(argc == 2);
     assert(eden_network_filter_load(argv[1]) == 0);
+    assert(eden_network_audit_init("network-audit-host-unwritten.log", 0) == 0);
     assert(eden_network_filter_count() >= 140);
     struct addrinfo hints = {0}, *addr = NULL;
     hints.ai_family = AF_INET;
@@ -164,7 +165,8 @@ with tempfile.TemporaryDirectory(prefix="encore-ps5-net-unit-") as tmp:
     assert cc is not None, "Clang is required for host sanitizer micro-test"
     subprocess.run([cc, "-std=c11", "-D_DEFAULT_SOURCE", "-Wall", "-Wextra", "-Werror",
                     "-fsanitize=address,undefined", "-I", str(compat.parent),
-                    str(source), str(root / "headless/network_domain_rules.c"),
+                    "-pthread", str(source), str(root / "headless/network_domain_rules.c"),
+                    str(root / "headless/network_audit.c"),
                     "-o", str(binary)], check=True, env=env)
     subprocess.run([str(binary), str(root / "headless/network-hosts.txt")],
                    check=True, env=env, timeout=8)

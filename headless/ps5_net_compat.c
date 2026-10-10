@@ -21,6 +21,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include "network_domain_rules.h"
+#include "network_audit.h"
 
 enum { EDEN_PS5_SO_NBIO = 0x1200 };
 
@@ -39,8 +40,10 @@ extern int __real_fcntl(int descriptor, int command, ...);
  */
 static int eden_ps5_lookup(const char *name, struct in_addr *address)
 {
-    if (inet_pton(AF_INET, name, address) == 1)
+    if (inet_pton(AF_INET, name, address) == 1) {
+        eden_network_audit_event("launcher", "numeric-ip", name, 0, 0);
         return 0;
+    }
     const int pool = sceNetPoolCreate("encore_dns", 16 * 1024, 0);
     if (pool < 0)
         return EAI_MEMORY;
@@ -53,6 +56,9 @@ static int eden_ps5_lookup(const char *name, struct in_addr *address)
         (void)sceNetResolverDestroy(resolver);
     }
     (void)sceNetPoolDestroy(pool);
+    eden_network_audit_event("launcher",
+                             result == 0 ? "dns-resolved" : "dns-error",
+                             name, 0, result);
     return result;
 }
 
@@ -67,8 +73,10 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
     const int family = hints != NULL ? hints->ai_family : AF_UNSPEC;
     if (family != AF_UNSPEC && family != AF_INET)
         return EAI_FAMILY;
-    if (node != NULL && eden_network_host_blocked(node))
-        return EAI_NONAME; // launcher and games share the exact same denylist
+    if (node != NULL && eden_network_host_blocked(node)) {
+        eden_network_audit_event("launcher", "dns-denied", node, 0, EAI_NONAME);
+        return EAI_NONAME;
+    } // launcher and games share the exact same denylist
 
     struct in_addr address;
     address.s_addr = htonl(INADDR_LOOPBACK);
@@ -170,8 +178,11 @@ struct hostent *gethostbyname(const char *name)
     static _Thread_local char hostname[256];
     static _Thread_local char *aliases[1];
     static _Thread_local char *addresses[2];
-    if (eden_network_host_blocked(name) ||
-        name == NULL || strlen(name) >= sizeof(hostname) ||
+    if (eden_network_host_blocked(name)) {
+        eden_network_audit_event("launcher", "dns-denied", name, 0, EAI_NONAME);
+        return NULL;
+    }
+    if (name == NULL || strlen(name) >= sizeof(hostname) ||
         eden_ps5_lookup(name, &address) != 0)
         return NULL;
     memcpy(hostname, name, strlen(name) + 1);

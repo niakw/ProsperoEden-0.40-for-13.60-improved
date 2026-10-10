@@ -50,6 +50,13 @@ and emulated Switch DNS).
 
 For full caveats and test gates see [R294 GPU queue notes](docs/PS5_R294_2026-10-10_GPU_QUEUE_STOP_WAIT.md)
 and [R295 domain policy](docs/PS5_R295_2026-10-10_UNIFIED_DOMAIN_HOSTS.md).
+R296 adds **opt-in network traffic metadata tracing**: Detailed Logging
+creates a bounded `network-accepted.log` for accepted/denied DNS lookups,
+guest and launcher socket connects and TX/RX byte counts. No packet
+contents are captured. Turning logging OFF makes the audit silent.
+Crucially, all allowed lookups continue through the console's **existing
+DNS configuration**, including NanoDNS, without overriding its rules.
+See [R296 NanoDNS compatibility and network audit](docs/PS5_R296_2026-10-10_NETWORK_AUDIT_NANODNS.md).
 
 ## Local integration audit — 8 October 2026 (not released)
 
