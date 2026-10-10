@@ -2193,6 +2193,37 @@ ${paths_source}")
     # No packets are edited, no host resolver setting is changed, and these
     # wrappers are completely silent when Detailed Logging is disabled.
     file(READ "${PROJECT_SOURCE_DIR}/src/core/hle/service/sockets/sfdnsres.cpp" audited_dns)
+    # R297: remove the *other* built-in Eden DNS blocklist. It uses a
+    # substring match (false positives) and blocks microsoft.com and
+    # phoenix-api.wbagora.com even though neither is in network-hosts.txt.
+    # On PS5, network-hosts.txt must be the single internal DNS denylist;
+    # NanoDNS/global DNS retain the final say for all otherwise-allowed names.
+    string(FIND "${audited_dns}" "static const constexpr std::array blockedDomains = {" old_dns_list_start)
+    string(FIND "${audited_dns}" "static NetDbError GetAddrInfoErrorToNetDbError" old_dns_list_end)
+    if(old_dns_list_start LESS 0 OR old_dns_list_end LESS 0 OR
+       old_dns_list_start GREATER old_dns_list_end)
+        message(FATAL_ERROR "Pinned legacy DNS substring blocklist changed")
+    endif()
+    string(SUBSTRING "${audited_dns}" 0 ${old_dns_list_start} clean_dns_prefix)
+    string(SUBSTRING "${audited_dns}" ${old_dns_list_end} -1 clean_dns_suffix)
+    set(audited_dns "${clean_dns_prefix}${clean_dns_suffix}")
+    set(legacy_dns_check [=[
+    // Prevent resolution of Nintendo servers
+    if (IsBlockedHost(host)) {
+        LOG_WARNING(Network, "Resolution of hostname {} requested, returning EAI_AGAIN", host);
+        return {0, GetAddrInfoError::AGAIN};
+    }
+
+]=])
+    string(FIND "${audited_dns}" "${legacy_dns_check}" legacy_dns_check_pos)
+    if(legacy_dns_check_pos LESS 0)
+        message(FATAL_ERROR "Pinned guest DNS embedded blocklist checks changed")
+    endif()
+    string(REPLACE "${legacy_dns_check}" "" audited_dns "${audited_dns}")
+    string(FIND "${audited_dns}" "IsBlockedHost" remaining_legacy_dns)
+    if(NOT remaining_legacy_dns EQUAL -1)
+        message(FATAL_ERROR "PS5 guest DNS still uses upstream hidden domain blocklist")
+    endif()
     set(old_dns_gate "    if (eden_network_host_blocked(host.c_str())) return {0, GetAddrInfoError::NODATA};")
     string(FIND "${audited_dns}" "${old_dns_gate}" dns_gate_pos)
     if(dns_gate_pos LESS 0)
@@ -2203,6 +2234,24 @@ ${paths_source}")
         "    eden_network_audit_event(\"guest\", encore_denied ? \"dns-denied\" : \"dns-allowed\", host.c_str(), 0, encore_denied ? 1 : 0);\n"
         "    if (encore_denied) return {0, GetAddrInfoError::NODATA};")
     string(REPLACE "${old_dns_gate}" "${new_dns_gate}" audited_dns "${audited_dns}")
+    # Record the real guest resolver RESULT after it completes. A locally
+    # allowed request can still fail due to NanoDNS or upstream global DNS;
+    # dns-allowed is not equivalent to dns-resolved.
+    foreach(guest_dns_lookup IN ITEMS
+        "    auto res_v = Network::GetAddressInfo(host, /*service*/ std::nullopt);"
+        "    auto res_v = Network::GetAddressInfo(host, service);")
+        string(FIND "${audited_dns}" "${guest_dns_lookup}" guest_lookup_offset)
+        if(guest_lookup_offset LESS 0)
+            message(FATAL_ERROR "Pinned guest DNS GetAddressInfo call changed")
+        endif()
+        string(CONCAT guest_dns_result "${guest_dns_lookup}\n"
+            "    if (eden_network_audit_active()) {\n"
+            "        const bool found = std::get_if<std::vector<Network::AddrInfo>>(&res_v) != nullptr;\n"
+            "        eden_network_audit_event(\"guest\", found ? \"dns-resolved\" : \"dns-error\", host.c_str(), 0, found ? 0 : 1);\n"
+            "    }")
+        string(REPLACE "${guest_dns_lookup}" "${guest_dns_result}"
+            audited_dns "${audited_dns}")
+    endforeach()
     string(PREPEND audited_dns "#include \"${EDEN_PORT_DIR}/network_audit.h\"\n")
     write_derived("${PORT_BUILD_DIR}/audited_guest_dns.cpp" "${audited_dns}")
     list(REMOVE_ITEM core_sources hle/service/sockets/sfdnsres.cpp)
