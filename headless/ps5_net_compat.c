@@ -62,13 +62,13 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
     if (result == NULL)
         return EAI_FAIL;
     *result = NULL;
-    if (node != NULL && eden_network_host_blocked(node))
-        return EAI_NONAME; // launcher and games share the exact same denylist
     if (node == NULL && service == NULL)
         return EAI_NONAME;
     const int family = hints != NULL ? hints->ai_family : AF_UNSPEC;
     if (family != AF_UNSPEC && family != AF_INET)
         return EAI_FAMILY;
+    if (node != NULL && eden_network_host_blocked(node))
+        return EAI_NONAME; // launcher and games share the exact same denylist
 
     struct in_addr address;
     address.s_addr = htonl(INADDR_LOOPBACK);
