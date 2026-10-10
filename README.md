@@ -56,7 +56,7 @@ guest and launcher socket connects and TX/RX byte counts. No packet
 contents are captured. Turning logging OFF makes the audit silent.
 Crucially, all allowed lookups continue through the console's **existing
 DNS configuration**, including NanoDNS, without overriding its rules.
-See [R296 NanoDNS compatibility and network audit](docs/PS5_R296_2026-10-10_NETWORK_AUDIT_NANODNS.md).
+See [R296 NanoDNS compatibility and network audit](docs/PS5_R296_2026-10-10_NETWORK_AUDIT_NANODNS.md). The report tool `tools/analyze-ps5-network-audit.py` summarizes observed allowed domains, IP-only destinations, and transfer counts without double-counting guest/native observations.
 
 ## Local integration audit — 8 October 2026 (not released)
 
