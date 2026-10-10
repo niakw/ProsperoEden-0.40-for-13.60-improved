@@ -41,7 +41,7 @@ epoch=... scope=guest event=dns-allowed target=updates.example.org bytes=0 statu
 epoch=... scope=guest event=dns-denied target=api.ea.com bytes=0 status=1
 epoch=... scope=guest event=connect target=203.0.113.10:443 bytes=0 status=0
 epoch=... scope=guest event=tx target=fd:12 bytes=516 status=0
-epoch=... scope=launcher event=rx target=203.0.113.22:443 bytes=1200 status=0
+epoch=... scope=native event=rx target=203.0.113.22:443 bytes=1200 status=0
 ```
 
 The examples above describe the format, not evidence of actual network
@@ -60,9 +60,9 @@ IP addresses, ports, file descriptors and byte counts are logged; as such
 logs can still expose contact metadata and should not be shared publicly
 without review.
 
-**Important:** the guest HLE and the launcher/native BSD wrappers may
+**Important:** the guest HLE and native BSD wrappers may
 both observe parts of the same socket flow. To avoid misleading totals,
-the records preserve `scope=guest` versus `scope=launcher`; do not sum
+the records preserve `scope=guest` versus `scope=native`; do not sum
 these scopes as unique on-the-wire bytes.
 
 A buffered 32 KiB writer flushes approximately every 64 records. It keeps
