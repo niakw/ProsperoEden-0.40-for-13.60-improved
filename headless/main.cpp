@@ -42,6 +42,7 @@
 #include "diagnostics.h"
 #include "display_refresh.h"
 #include "log_pipe.h"
+#include "network_domain_rules.h"
 #include "mods.h"
 #include "glyph_overrides_runtime.h"
 #include "controller_applet.h"
@@ -557,6 +558,12 @@ int main(int argc, char** argv) {
         else
             Eden::BootTrace::Quiet(Eden::LogsDir());
         Eden::BootTrace::Line("logs ready; app=%s data=%s", Eden::AppDir().c_str(), Eden::UserDir().c_str());
+        // Load the packaged list before any native HTTP or guest networking.
+        // A missing/invalid hosts file must not silently become allow-all.
+        if (eden_network_filter_load(Eden::AppFile("network-hosts.txt").c_str()) != 0) {
+            Eden::Report("network", "The packaged network hosts policy is missing or invalid");
+            return 2;
+        }
         // Host-side HTTPS (Nlib, remote override manifests) uses BSD sockets and the
         // Payload SDK resolver. Native titles must initialise libSceNet before those calls.
         // Network failure is non-fatal: the launcher remains fully usable from local caches.
