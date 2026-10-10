@@ -214,6 +214,7 @@ jobs:
           python3 -B tools/check-vulkan-present-source-replay-host.py
           python3 -B tools/check-performance-policy.py
           python3 -B tools/check-ps5-quiet-cpu-io-clocks.py
+          python3 -B tools/check-ps5-upstream-fixes-r302.py
           python3 -B tools/check-ps5-quiet-guest-entry.py
           python3 -B tools/check-ps5-direct-pool-host.py
           python3 -B tools/check-ps5-pc-ring-host.py
