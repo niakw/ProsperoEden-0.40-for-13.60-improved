@@ -102,3 +102,11 @@ logs remain authoritative for traffic outside the intercepted APIs.
 
 No FC27 or BOTW benchmark result has been inferred from these source changes.
 The logging path remains disabled in normal gameplay.
+
+## Native all-on gate
+
+The R296 host source and compiled audit suite passed on GitHub Actions
+[#38088885411](https://github.com/niakw/Prospero.Eden-Encore/actions/runs/38088885411).
+A separate native PS5 test build must compile guest HLE, link the socket
+observers, verify the exact packaged hosts file and satisfy staged inventory.
+No release is published from this experimental build.
