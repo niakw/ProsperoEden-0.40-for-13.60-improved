@@ -18,6 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGETS = (
     "headless/ps5_net_compat.c",
     "headless/network_domain_rules.c",
+    "headless/network_audit.c",
+    "headless/network_audit_sockets.c",
     "headless/main.cpp",
     "headless/performance.cpp",
     "headless/prosperoeden/eden_services.cpp",
