@@ -1,0 +1,171 @@
+# Eden Encore — packaged domain denylist for launcher + emulated games
+# SPDX-License-Identifier: GPL-3.0-or-later
+# One hostname suffix or wildcard pattern per line; ASCII names only.
+# A plain 'ea.com' matches ea.com and ALL its subdomains (api.ea.com).
+# Wildcards '*' match any characters INSIDE ONE label, never a dot:
+#   *.*test.fr, *.test.* (examples, not active rules)
+# The file is installed as app0/network-hosts.txt. All other hostnames are allowed.
+#
+# Nintendo / network services
+nintendo.com
+nintendo.net
+nintendo.jp
+nintendo.co.jp
+nintendo.co.uk
+nintendo-europe.com
+nintendowifi.net
+nintendo.es
+nintendo.co.kr
+nintendo.tw
+nintendo.com.hk
+nintendo.com.au
+nintendo.co.nz
+nintendo.at
+nintendo.be
+nintendods.cz
+nintendo.dk
+nintendo.de
+nintendo.fi
+nintendo.fr
+nintendo.gr
+nintendo.hu
+nintendo.it
+nintendo.nl
+nintendo.no
+nintendo.pt
+nintendo.ru
+nintendo.co.za
+nintendo.se
+nintendo.ch
+nintendo.pl
+nintendoswitch.com
+nintendoswitch.cn
+nintendoswitch.com.cn
+nintendo.eu
+# Nintendo game cloud upload through third-party domain; DO NOT block whole AWS
+scsi-upload-lp1.s3.us-west-2.amazonaws.com
+
+# Epic and associated networks
+epicgames.com
+epicgames.dev
+fortnite.com
+unrealengine.com
+easyanticheat.net
+easy.ac
+rocketleague.com
+psyonix.com
+fallguys.com
+
+# Electronic Arts
+ea.com
+ea.net
+easports.com
+easportsfc.com
+eaplay.com
+origin.com
+codemasters.com
+
+# Ubisoft, Rockstar, Take-Two
+ubisoft.com
+ubi.com
+ubisoftconnect.com
+ubi-services.com
+rsgameservices.com
+rockstargames.com
+rockstarservices.com
+take2games.com
+2k.com
+2kcoretech.online
+
+# Microsoft game services
+minecraft.net
+minecraftservices.com
+mojang.com
+xboxlive.com
+xboxservices.com
+xbox.com
+
+# Japanese publishers and partners
+sega.com
+sega.co.jp
+atlus.co.jp
+capcom.com
+capcom.co.jp
+square-enix.com
+square-enix-games.com
+square-enix.co.jp
+bandainamcoent.com
+fromsoftware.jp
+konami.com
+konami.net
+yugioh-card.com
+
+# Activision Blizzard, Bethesda, Gearbox, Warner
+activision.com
+callofduty.com
+demonware.net
+demonware.com
+blizzard.com
+battle.net
+bethesda.net
+bethesda.com
+zenimax.com
+gearboxsoftware.com
+wbgames.com
+wbplay.com
+warnerbrosgames.com
+ttgames.com
+
+# More console publishers
+koeitecmo.com
+koeitecmoamerica.com
+koeitecmo.co.jp
+gamecity.ne.jp
+level5.co.jp
+marvelous.co.jp
+nisamerica.com
+nippon1.co.jp
+spike-chunsoft.com
+spike-chunsoft.co.jp
+arcsystemworks.com
+arcsygames.com
+inticreates.com
+gungho.jp
+505games.com
+team17.com
+thqnordic.com
+plaion.com
+deep-silver.com
+tinybuild.com
+devolverdigital.com
+nacon.com
+maximumgames.com
+rawfury.com
+annapurnainteractive.com
+humblegames.com
+curvegames.com
+dotemu.com
+microids.com
+telltale.com
+jackboxgames.com
+jackbox.tv
+playdigious.com
+warframe.com
+digitalextremes.com
+deadbydaylight.com
+bhvr.com
+hirezstudios.com
+smitegame.com
+pokemon.com
+pokemon.co.jp
+pokemonunite.com
+
+# CD Projekt / GOG
+cdprojekt.com
+cdprojektred.com
+cdpred.services
+cyberpunk.net
+gog.com
+gogcdn.net
+gog-statics.com
+gogalaxy.com
