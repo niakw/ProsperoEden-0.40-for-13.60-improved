@@ -32,6 +32,7 @@ These are **potential** CPU overheads and do not establish the cause of late FC2
 ## Pre-test qualification and boundaries
 
 - R299's unfinished native compilation was superseded when the development branch advanced: the workflow's `cancel-in-progress` cancels intermediate native runs on subsequent commits. Only the final R300 native build can validate R300 source generation.
-- Run full source/host preflight, then one independent native all-on compilation on the final commit. Keep the exact binary SHA and ELF symbols. **Do not** publish a release.
+- Host/source preflight [#38092643432](https://github.com/niakw/Prospero.Eden-Encore/actions/runs/38092643432) completed **SUCCESS**, including real-body C++20 idle gating, Sony mspace UBSan/TSan, graphics, network and UI source contracts.
+- The following commit requests an independent **native PS5 all-on SDK compilation** after that successful preflight. It must produce a validated app and matching ELF symbols before firmware tests. **Do not** publish a release.
 - Next real PS5 tests must compare FC27 gameplay and BOTW in the same scenes, shader-cache state and graphics presets. Compare frame interval tails as well as FPS; don't claim GPU use or jitter fixes from a green build.
 - Do not alter graphical accuracy, default profiles, 16 GiB unified-memory safety, reserved system memory, glyph art, DNS hosts, NanoDNS integration, UI, delivery branch or title-specific code.
