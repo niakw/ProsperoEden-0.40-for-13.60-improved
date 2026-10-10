@@ -44,29 +44,29 @@ for metric, call in (
     untraced = untraced.replace(wrapped, call)
 # PS5 stop-aware event wait replaces upstream's polling-independent EmplaceWait.
 producer_original = '    state.queue.EmplaceWait(std::move(command_data), fence, block);'
-producer_new = (
-    '    bool pushed = false;\n'
-    '    if (!stop_source.stop_requested()) {\n'
-    '        pushed = state.queue.TryEmplace(std::move(command_data), fence, block);\n'
-    '        if (!pushed) {\n'
-    '        pushed = state.queue.EmplaceWaitWithStopToken(stop_source.get_token(),\n'
-    '            std::move(command_data), fence, block);\n'
-    '        }\n'
-    '    }\n'
-    '    if (!pushed)\n'
-    '        return state.signaled_fence.load(std::memory_order_relaxed);'
-)
-producer_profiled = producer_new.replace(
-    '        pushed = state.queue.EmplaceWaitWithStopToken(stop_source.get_token(),\n'
-    '            std::move(command_data), fence, block);',
-    '        { ::Eden::Performance::DiagnosticTimer full_timer('
-    '::Eden::Performance::gpu_queue_full);\n'
-    '        pushed = state.queue.EmplaceWaitWithStopToken(stop_source.get_token(),\n'
-    '            std::move(command_data), fence, block);\n'
-    '        }')
-expected = producer_profiled if development else producer_new
-assert untraced.count(expected) == 1
-untraced = untraced.replace(expected, producer_original)
+# Audit the whole stop-aware producer region, independent of formatting or
+# profile-only brace placement. The exact source is compiled in native CI.
+producer_start = untraced.index('    bool pushed = false;')
+producer_end_marker = '        return state.signaled_fence.load(std::memory_order_relaxed);'
+producer_end = untraced.index(producer_end_marker, producer_start) + len(producer_end_marker)
+native_producer = untraced[producer_start:producer_end]
+for required in (
+    'bool pushed = false;',
+    'if (!stop_source.stop_requested())',
+    'state.queue.TryEmplace(std::move(command_data), fence, block)',
+    'if (!pushed)',
+    'state.queue.EmplaceWaitWithStopToken(stop_source.get_token(),',
+    'std::move(command_data), fence, block)',
+    'return state.signaled_fence.load(std::memory_order_relaxed);',
+):
+    assert required in native_producer, (required, native_producer)
+assert native_producer.count('TryEmplace(') == 1
+assert native_producer.count('EmplaceWaitWithStopToken(') == 1
+if development:
+    assert native_producer.count('DiagnosticTimer full_timer(') == 1
+else:
+    assert 'DiagnosticTimer full_timer(' not in native_producer
+untraced = untraced[:producer_start] + producer_original + untraced[producer_end:]
 loading_wait = """            if (Eden::LoadingTick(renderer, false)) {
                 if (!state.queue.TryPop(next)) {
                     Eden::LoadingTick(renderer, true);
