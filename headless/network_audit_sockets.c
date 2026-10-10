@@ -41,7 +41,7 @@ int __wrap_connect(int fd, const struct sockaddr* addr, socklen_t length) {
     const int saved=errno;
     if (eden_network_audit_active() && (ret==0 || saved==EINPROGRESS)) {
         char target[80]; socket_target(fd,addr,length,target,sizeof(target));
-        eden_network_audit_event("launcher","connect",target,0,ret==0?0:EINPROGRESS);
+        eden_network_audit_event("native","connect",target,0,ret==0?0:EINPROGRESS);
     }
     errno=saved;
     return ret;
@@ -51,7 +51,7 @@ ssize_t __wrap_send(int fd, const void* buffer, size_t length, int flags) {
     const int saved=errno;
     if (ret>0 && eden_network_audit_active()) {
         char target[80]; socket_target(fd,NULL,0,target,sizeof(target));
-        eden_network_audit_event("launcher","tx",target,(unsigned long long)ret,0);
+        eden_network_audit_event("native","tx",target,(unsigned long long)ret,0);
     }
     errno=saved;
     return ret;
@@ -62,7 +62,7 @@ ssize_t __wrap_sendto(int fd, const void* buffer, size_t length, int flags,
     const int saved=errno;
     if (ret>0 && eden_network_audit_active()) {
         char target[80]; socket_target(fd,addr,addr_len,target,sizeof(target));
-        eden_network_audit_event("launcher","tx",target,(unsigned long long)ret,0);
+        eden_network_audit_event("native","tx",target,(unsigned long long)ret,0);
     }
     errno=saved;
     return ret;
@@ -72,7 +72,7 @@ ssize_t __wrap_recv(int fd, void* buffer, size_t length, int flags) {
     const int saved=errno;
     if (ret>0 && eden_network_audit_active()) {
         char target[80]; socket_target(fd,NULL,0,target,sizeof(target));
-        eden_network_audit_event("launcher","rx",target,(unsigned long long)ret,0);
+        eden_network_audit_event("native","rx",target,(unsigned long long)ret,0);
     }
     errno=saved;
     return ret;
@@ -84,7 +84,7 @@ ssize_t __wrap_recvfrom(int fd, void* buffer, size_t length, int flags,
     if (ret>0 && eden_network_audit_active()) {
         char target[80];
         socket_target(fd,addr,addr && addr_len ? *addr_len : 0,target,sizeof(target));
-        eden_network_audit_event("launcher","rx",target,(unsigned long long)ret,0);
+        eden_network_audit_event("native","rx",target,(unsigned long long)ret,0);
     }
     errno=saved;
     return ret;
