@@ -61,6 +61,9 @@ int eden_network_audit_init(const char* path, int detailed) {
     pthread_mutex_unlock(&audit_mutex);
     return 0;
 }
+int eden_network_audit_active(void) {
+    return atomic_load_explicit(&audit_enabled,memory_order_relaxed);
+}
 void eden_network_audit_enable(int detailed) {
     pthread_mutex_lock(&audit_mutex);
     if (!detailed) atomic_store_explicit(&audit_enabled,0,memory_order_release);
