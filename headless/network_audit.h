@@ -7,6 +7,8 @@ extern "C" {
 #endif
 // Configure once before network startup. Does not create a file when OFF.
 int eden_network_audit_init(const char* path, int detailed);
+// Single relaxed check for debug-only socket metadata preparation.
+int eden_network_audit_active(void);
 // Applies a live Settings > Detailed Logging change, closing the file on OFF.
 void eden_network_audit_enable(int detailed);
 // Network boundary metadata only: no payloads, URL paths or credentials.
