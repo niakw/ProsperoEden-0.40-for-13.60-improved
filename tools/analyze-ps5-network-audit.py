@@ -32,6 +32,7 @@ SOCKET_EVENTS = {"connect", "tx", "rx", "numeric-ip"}
 def summarize(paths: list[Path]) -> dict:
     by_event: Counter[tuple[str, str]] = Counter()
     dns: dict[str, Counter[str]] = defaultdict(Counter)
+    dns_scoped: dict[tuple[str, str], Counter[str]] = defaultdict(Counter)
     connections: Counter[tuple[str, str]] = Counter()
     io: dict[tuple[str, str], Counter[str]] = defaultdict(Counter)
     malformed = 0
@@ -53,6 +54,7 @@ def summarize(paths: list[Path]) -> dict:
                 by_event[(scope, event)] += 1
                 if event in DNS_EVENTS:
                     dns[event][target.lower().rstrip(".")] += 1
+                    dns_scoped[(scope, event)][target.lower().rstrip(".")] += 1
                 elif event in SOCKET_EVENTS:
                     if event == "connect":
                         connections[(scope, target)] += 1
@@ -66,6 +68,7 @@ def summarize(paths: list[Path]) -> dict:
         "end": latest_epoch,
         "by_event": by_event,
         "dns": dns,
+        "dns_scoped": dns_scoped,
         "connect": connections,
         "io": io,
     }
@@ -80,14 +83,17 @@ def display(report: dict, top: int) -> str:
     ]
     for (scope, event), count in report["by_event"].most_common():
         lines.append(f"  {scope:8} {event:16} {count:>9,}")
-    for kind, label in (
-        ("dns-denied", "Locally denied domain lookups"),
-        ("dns-allowed", "Guest domains not denied by Eden (NOT proof of DNS success)"),
-        ("dns-resolved", "Native launcher DNS resolution success"),
-        ("dns-error", "Native launcher DNS resolution failure"),
+    for scope, kind, label in (
+        ("guest", "dns-denied", "Guest domain lookups denied by Eden"),
+        ("launcher", "dns-denied", "Launcher domain lookups denied by Eden"),
+        ("guest", "dns-allowed", "Guest domains allowed by Eden (NOT proof of DNS success)"),
+        ("guest", "dns-resolved", "Guest resolver succeeded after Eden allowed the name"),
+        ("guest", "dns-error", "Guest resolver failed after Eden allowed the name"),
+        ("launcher", "dns-resolved", "Launcher resolver succeeded"),
+        ("launcher", "dns-error", "Launcher resolver failed"),
     ):
         lines.extend(("", label + ":"))
-        ranking = report["dns"][kind].most_common(top)
+        ranking = report["dns_scoped"][(scope, kind)].most_common(top)
         lines.extend(f"  {count:>7,}  {host}" for host, count in ranking)
         if not ranking:
             lines.append("  (none observed)")
@@ -141,10 +147,15 @@ def self_test() -> None:
             "epoch=14 scope=guest event=tx target=fd:12 bytes=500 status=0",
             "epoch=15 scope=native event=tx target=203.0.113.10:443 bytes=500 status=0",
             "epoch=16 scope=guest event=rx target=fd:12 bytes=20 status=0",
+            "epoch=17 scope=guest event=dns-error target=fail.example bytes=0 status=1",
+            "epoch=18 scope=guest event=dns-resolved target=pass.example bytes=0 status=0",
             "not-a-valid-row",
         )) + "\n")
         report = summarize([path])
-        assert report["events"] == 7 and report["invalid_lines"] == 1
+        assert report["events"] == 9 and report["invalid_lines"] == 1
+        assert report["dns_scoped"][("guest", "dns-resolved")]["pass.example"] == 1
+        assert report["dns_scoped"][("launcher", "dns-resolved")]["api.nlib.cc"] == 1
+        assert report["dns_scoped"][("guest", "dns-error")]["fail.example"] == 1
         assert report["dns"]["dns-denied"]["api.ea.com"] == 1
         assert report["dns"]["dns-allowed"]["allowed.example"] == 1
         assert report["io"][("guest", "fd:12")]["tx"] == 500
