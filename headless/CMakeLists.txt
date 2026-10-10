@@ -2060,10 +2060,9 @@ if(EDEN_PS5_OPENGL)
             if(full_wait_at LESS 0)
                 message(FATAL_ERROR "Pinned stop-aware GPU producer wait changed")
             endif()
-            string(REPLACE "${producer_wait}"
-                "        { ::Eden::Performance::DiagnosticTimer full_timer(::Eden::Performance::gpu_queue_full);\n"
-                "${producer_wait}\n"
-                "        }"
+            set(profiled_producer_wait
+                "        { ::Eden::Performance::DiagnosticTimer full_timer(::Eden::Performance::gpu_queue_full);\n${producer_wait}\n        }")
+            string(REPLACE "${producer_wait}" "${profiled_producer_wait}"
                 gpu_worker "${gpu_worker}")
         endif()
         write_derived("${PORT_BUILD_DIR}/gpu_thread.cpp" "${gpu_worker}")
