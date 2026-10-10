@@ -50,8 +50,9 @@ R300 all-on build [#38092774003](https://github.com/niakw/Prospero.Eden-Encore/a
 completed SUCCESS and published the checked native app and unstripped crash
 symbols. It does **not** contain R301.
 
-Run full host preflight for R301 and then a new all-on native SDK build with
-`publish=false`, preserving its exact source SHA and symbol provenance.
+R301 host preflight [#38093318961](https://github.com/niakw/Prospero.Eden-Encore/actions/runs/38093318961) completed **SUCCESS**, including the actual A32/A64 generated-wrapper C++20 test, memory sanitizers, UX and source-diff validation.
+
+The next commit requests a new **native all-on SDK build** of this source with `publish=false`, preserving its exact source SHA and symbol provenance. Its success and performance are not assumed.
 Do not change FW13.60 PS5 resolution or memory safety limits to claim an
 unmeasured performance fix.
 
