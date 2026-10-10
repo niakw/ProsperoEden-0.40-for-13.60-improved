@@ -54,6 +54,11 @@ int main(int argc, char** argv) {
     yes("www.pokemon.co.jp");
     yes("forge.nintendods.cz");
     no("not-ea.com");
+    // These names were blocked by the old hardcoded Eden table but are
+    // absent from the supplied policy; allow them through to normal DNS.
+    no("microsoft.com");
+    no("phoenix-api.wbagora.com");
+    no("battlenet.com.evil.test");
     no("ea.com.evil.example");
     no("fake-nintendo.com");
     no("nintendowifi.net.evil.org");
