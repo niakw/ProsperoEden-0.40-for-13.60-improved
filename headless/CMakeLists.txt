@@ -2198,12 +2198,12 @@ ${paths_source}")
     if(dns_gate_pos LESS 0)
         message(FATAL_ERROR "Pinned guest DNS domain filter absent from audit input")
     endif()
-    set(new_dns_gate
-        "    const bool encore_denied = eden_network_host_blocked(host.c_str()) != 0;\\n"
-        "    eden_network_audit_event(\\"guest\\", encore_denied ? \\"dns-denied\\" : \\"dns-allowed\\", host.c_str(), 0, encore_denied ? 1 : 0);\\n"
+    string(CONCAT new_dns_gate
+        "    const bool encore_denied = eden_network_host_blocked(host.c_str()) != 0;\n"
+        "    eden_network_audit_event(\"guest\", encore_denied ? \"dns-denied\" : \"dns-allowed\", host.c_str(), 0, encore_denied ? 1 : 0);\n"
         "    if (encore_denied) return {0, GetAddrInfoError::NODATA};")
     string(REPLACE "${old_dns_gate}" "${new_dns_gate}" audited_dns "${audited_dns}")
-    string(PREPEND audited_dns "#include \\"${EDEN_PORT_DIR}/network_audit.h\\"\\n")
+    string(PREPEND audited_dns "#include \"${EDEN_PORT_DIR}/network_audit.h\"\n")
     write_derived("${PORT_BUILD_DIR}/audited_guest_dns.cpp" "${audited_dns}")
     list(REMOVE_ITEM core_sources hle/service/sockets/sfdnsres.cpp)
     list(APPEND core_sources "${PORT_BUILD_DIR}/audited_guest_dns.cpp")
@@ -2215,12 +2215,12 @@ ${paths_source}")
     if(bsd_connect_pos LESS 0)
         message(FATAL_ERROR "Pinned guest BSD connect changed")
     endif()
-    set(bsd_audit_connect
-        "${bsd_connect_call}\\n"
-        "    if ((result == Errno::SUCCESS || result == Errno::ISCONN) && eden_network_audit_active()) {\\n"
-        "        const auto peer = Translate(addr_in);\\n"
-        "        const std::string host = Network::IPv4AddressToString(peer.ip) + \\":\\" + std::to_string(peer.portno);\\n"
-        "        eden_network_audit_event(\\"guest\\", \\"connect\\", host.c_str(), 0, 0);\\n"
+    string(CONCAT bsd_audit_connect
+        "${bsd_connect_call}\n"
+        "    if ((result == Errno::SUCCESS || result == Errno::ISCONN) && eden_network_audit_active()) {\n"
+        "        const auto peer = Translate(addr_in);\n"
+        "        const std::string host = Network::IPv4AddressToString(peer.ip) + \":\" + std::to_string(peer.portno);\n"
+        "        eden_network_audit_event(\"guest\", \"connect\", host.c_str(), 0, 0);\n"
         "    }")
     string(REPLACE "${bsd_connect_call}" "${bsd_audit_connect}" audited_bsd "${audited_bsd}")
     set(bsd_send_call "    return Translate(file_descriptors[fd]->socket->Send(message, flags));")
@@ -2228,12 +2228,12 @@ ${paths_source}")
     if(bsd_send_pos LESS 0)
         message(FATAL_ERROR "Pinned guest BSD send changed")
     endif()
-    set(bsd_send_audit
-        "    const auto send_result = Translate(file_descriptors[fd]->socket->Send(message, flags));\\n"
-        "    if (send_result.first > 0 && eden_network_audit_active()) {\\n"
-        "        const std::string descriptor = \\"fd:\\" + std::to_string(fd);\\n"
-        "        eden_network_audit_event(\\"guest\\", \\"tx\\", descriptor.c_str(), send_result.first, 0);\\n"
-        "    }\\n"
+    string(CONCAT bsd_send_audit
+        "    const auto send_result = Translate(file_descriptors[fd]->socket->Send(message, flags));\n"
+        "    if (send_result.first > 0 && eden_network_audit_active()) {\n"
+        "        const std::string descriptor = \"fd:\" + std::to_string(fd);\n"
+        "        eden_network_audit_event(\"guest\", \"tx\", descriptor.c_str(), send_result.first, 0);\n"
+        "    }\n"
         "    return send_result;")
     string(REPLACE "${bsd_send_call}" "${bsd_send_audit}" audited_bsd "${audited_bsd}")
     set(bsd_sendto_call "    return Translate(file_descriptors[fd]->socket->SendTo(flags, message, p_addr_in));")
@@ -2241,12 +2241,12 @@ ${paths_source}")
     if(bsd_sendto_pos LESS 0)
         message(FATAL_ERROR "Pinned guest BSD sendto changed")
     endif()
-    set(bsd_sendto_audit
-        "    const auto sent = Translate(file_descriptors[fd]->socket->SendTo(flags, message, p_addr_in));\\n"
-        "    if (sent.first > 0 && eden_network_audit_active()) {\\n"
-        "        const std::string target = p_addr_in ? Network::IPv4AddressToString(p_addr_in->ip) + \\":\\" + std::to_string(p_addr_in->portno) : \\"fd:\\" + std::to_string(fd);\\n"
-        "        eden_network_audit_event(\\"guest\\", \\"tx\\", target.c_str(), sent.first, 0);\\n"
-        "    }\\n"
+    string(CONCAT bsd_sendto_audit
+        "    const auto sent = Translate(file_descriptors[fd]->socket->SendTo(flags, message, p_addr_in));\n"
+        "    if (sent.first > 0 && eden_network_audit_active()) {\n"
+        "        const std::string target = p_addr_in ? Network::IPv4AddressToString(p_addr_in->ip) + \":\" + std::to_string(p_addr_in->portno) : \"fd:\" + std::to_string(fd);\n"
+        "        eden_network_audit_event(\"guest\", \"tx\", target.c_str(), sent.first, 0);\n"
+        "    }\n"
         "    return sent;")
     string(REPLACE "${bsd_sendto_call}" "${bsd_sendto_audit}" audited_bsd "${audited_bsd}")
     set(bsd_recv_call "    const auto [ret, bsd_errno] = Translate(descriptor.socket->Recv(flags, message));")
@@ -2255,7 +2255,7 @@ ${paths_source}")
         message(FATAL_ERROR "Pinned guest BSD recv changed")
     endif()
     string(REPLACE "${bsd_recv_call}"
-        "${bsd_recv_call}\\n    if (ret > 0 && eden_network_audit_active()) {\\n        const std::string descriptor = \\"fd:\\" + std::to_string(fd);\\n        eden_network_audit_event(\\"guest\\", \\"rx\\", descriptor.c_str(), ret, 0);\\n    }"
+        "${bsd_recv_call}\n    if (ret > 0 && eden_network_audit_active()) {\n        const std::string descriptor = \"fd:\" + std::to_string(fd);\n        eden_network_audit_event(\"guest\", \"rx\", descriptor.c_str(), ret, 0);\n    }"
         audited_bsd "${audited_bsd}")
     set(bsd_recvfrom_call "    const auto [ret, bsd_errno] = Translate(descriptor.socket->RecvFrom(flags, message, p_addr_in));")
     string(FIND "${audited_bsd}" "${bsd_recvfrom_call}" bsd_recvfrom_pos)
@@ -2263,9 +2263,9 @@ ${paths_source}")
         message(FATAL_ERROR "Pinned guest BSD recvfrom changed")
     endif()
     string(REPLACE "${bsd_recvfrom_call}"
-        "${bsd_recvfrom_call}\\n    if (ret > 0 && eden_network_audit_active()) {\\n        const std::string target = p_addr_in ? Network::IPv4AddressToString(p_addr_in->ip) + \\":\\" + std::to_string(p_addr_in->portno) : \\"fd:\\" + std::to_string(fd);\\n        eden_network_audit_event(\\"guest\\", \\"rx\\", target.c_str(), ret, 0);\\n    }"
+        "${bsd_recvfrom_call}\n    if (ret > 0 && eden_network_audit_active()) {\n        const std::string target = p_addr_in ? Network::IPv4AddressToString(p_addr_in->ip) + \":\" + std::to_string(p_addr_in->portno) : \"fd:\" + std::to_string(fd);\n        eden_network_audit_event(\"guest\", \"rx\", target.c_str(), ret, 0);\n    }"
         audited_bsd "${audited_bsd}")
-    string(PREPEND audited_bsd "#include \\"${EDEN_PORT_DIR}/network_audit.h\\"\\n")
+    string(PREPEND audited_bsd "#include \"${EDEN_PORT_DIR}/network_audit.h\"\n")
     write_derived("${PORT_BUILD_DIR}/audited_guest_bsd.cpp" "${audited_bsd}")
     list(REMOVE_ITEM core_sources hle/service/sockets/bsd.cpp)
     list(APPEND core_sources "${PORT_BUILD_DIR}/audited_guest_bsd.cpp")
