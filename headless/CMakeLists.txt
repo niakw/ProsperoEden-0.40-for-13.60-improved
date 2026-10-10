@@ -2344,6 +2344,8 @@ void Initialize() {
         "${EDEN_PORT_DIR}/crash_report.cpp" "${EDEN_PORT_DIR}/stop_limit.cpp"
         "${EDEN_PORT_DIR}/elevation/elevation.cpp" "${EDEN_PORT_DIR}/ps5_net_compat.c"
         "${EDEN_PORT_DIR}/network_domain_rules.c"
+        "${EDEN_PORT_DIR}/network_audit.c"
+        "${EDEN_PORT_DIR}/network_audit_sockets.c"
         "${eden_app_crt}" "${PORT_ROOT}/src/lifecycle.c"
         "${PORT_BUILD_DIR}/app_heap.c")
     # Guest DNS IPC and native launcher both call eden_network_host_blocked(),
@@ -2357,7 +2359,9 @@ void Initialize() {
     # Native-title libc rejects socket fcntl and its resolver may depend on an
     # unloaded WebKit module. ps5_net_compat.c supplies sceNetResolver DNS and
     # translates only refused socket flags to native SO_NBIO.
-    target_link_options(eden-headless PRIVATE -Wl,--wrap=fcntl)
+    target_link_options(eden-headless PRIVATE -Wl,--wrap=fcntl
+        -Wl,--wrap=connect -Wl,--wrap=send -Wl,--wrap=sendto
+        -Wl,--wrap=recv -Wl,--wrap=recvfrom)
     set_property(TARGET eden-headless APPEND PROPERTY LINK_DEPENDS
         "${PORT_ROOT}/tools/link-headless-native.sh" "${PORT_ROOT}/tools/unwind.ld"
         "${PORT_ROOT}/tools/app-symbols.map")
