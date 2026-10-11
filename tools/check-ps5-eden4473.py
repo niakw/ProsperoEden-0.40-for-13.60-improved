@@ -29,7 +29,7 @@ assert "std::min<size_t>(dma_state.method_count, header.size)" in port
 assert "const bool kepler_payload" in port
 assert "const bool macro_payload" in port
 assert "upload_dirty = current_dirty;" in port
-assert "upload_dirty = false;" in port
+assert "current_dirty = false;" in port
 assert "data.was_dirty || source_dirty" in port
 assert 'target_include_directories(video_core BEFORE PRIVATE' in port
 assert 'if("${PORT_BUILD_DIR}/dma_pusher.cpp" IN_LIST video_sources)' in port
