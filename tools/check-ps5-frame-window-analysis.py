@@ -85,5 +85,34 @@ with tempfile.TemporaryDirectory(prefix="eden-ps5-window-test-") as directory:
         assert "reset" in str(error)
     else:
         raise AssertionError("Reset across game session was treated as valid timing")
+# FC27: a near-30 FPS mean with >1,000 contended cache entries MUST NOT
+# be reported as smooth, and a high number of collisions is not a time.
+cache_spec = importlib.util.spec_from_file_location(
+    "eden_cache_frame_parser", root / "tools/analyze-ps5-cache-contention.py")
+assert cache_spec and cache_spec.loader
+cache = importlib.util.module_from_spec(cache_spec)
+sys.modules[cache_spec.name] = cache
+cache_spec.loader.exec_module(cache)
+sample = [
+    "EDEN_VULKAN_FRAME total=150 frames=150 seconds=5.0 fps=30.0 worst_ms=34 late50=0",
+    "EDEN_FRAME_PRESSURE frame=150 cache_contended=1100 cache_wait_ms=40 gpu_full_ms=0",
+    "EDEN_VULKAN_FRAME total=300 frames=150 seconds=5.0 fps=29.9 worst_ms=56 late50=1",
+    "EDEN_FRAME_PRESSURE frame=300 cache_contended=1250 cache_wait_ms=80 gpu_full_ms=0",
+    "EDEN_VULKAN_FRAME total=401 frames=101 seconds=5.0 fps=20.2 worst_ms=105 late50=30",
+    "EDEN_FRAME_PRESSURE frame=401 cache_contended=18000 cache_wait_ms=270 gpu_full_ms=45",
+    "EDEN_VULKAN_FRAME total=501 frames=100 seconds=5.0 fps=20 worst_ms=125 late50=40",
+    "EDEN_FRAME_PRESSURE frame=999 cache_contended=0 cache_wait_ms=0",  # do not align
+]
+paired = cache.windows(sample)
+assert len(paired) == 3
+assert [int(v["total"]) for v in paired] == [150, 300, 401]
+text = cache.report(paired)
+assert "near30: n=2" in text and "cache_ge1000=2" in text
+assert "late50_windows=1" in text and "slow_below25: n=1" in text
+assert "blocked_ms_median=60" in text and "blocked_ms_median=270" in text
+assert "FPS near 30 is not smoothness" in text
+assert "NO_VALID_WINDOWS" in cache.report(cache.windows(sample[-2:]))
+print("PASS R305: near30 contention + hitch tracked; frame-id mismatches rejected")
+
 print("PASS: backward-compatible 5s PS5 GPU/guest/JIT metrics and confirmed pressure headroom")
 print("NO PS5 firmware execution, SDK build or measured FPS gain")
