@@ -1,3 +1,5 @@
+> **Rectificatif R307 :** la comparaison directe avec Eden 5f142c79 ne décrivait pas toutes les modifications effectivement compilées. Notre script `tools/apply-eden-backports.sh` applique **déjà les correctifs #4473 ET #4477** via `headless/backports/eden-4473-4477.patch`. Ils ne constituent donc pas de nouvelles optimisations à intégrer. R306 a démontré cette duplication sur la console CI et R307 a retiré son overlay. La contention de `RasterizerVulkan::PrepareDraw` reste à optimiser au-delà de ces correctifs.
+
 # R305 — Audit des interfaces CPU / caches / Vulkan / PS5 (11 octobre 2026)
 
 ## Périmètre et sources
