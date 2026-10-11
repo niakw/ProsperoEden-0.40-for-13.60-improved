@@ -201,5 +201,6 @@ with tempfile.TemporaryDirectory(prefix="encore-unmapped-error-budget-") as tmp:
                     "-Werror", str(src), "-o", str(binary)], check=True)
     subprocess.run([str(binary)], check=True, timeout=15)
 
+print("PASS R304: 100k bounded unmapped reports, concurrent counter, reset, crash snapshot")
 print("PASS: quiet stdout/stderr no files; live enable/disable/re-enable; crash reporter independent")
 print("SOURCE/HOST ONLY: PS5 native binary, startup sequence and actual FPS still unverified")
