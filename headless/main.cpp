@@ -1217,7 +1217,11 @@ int main(int argc, char** argv) {
         // globals before reading the current game's dev-settings.txt.
         Eden::Performance::graphics_usage_from_pool.store(true, std::memory_order_relaxed);
         Eden::Performance::gc_keep_dirty.store(true, std::memory_order_relaxed);
-        Eden::Performance::dispatch_mask.store(7, std::memory_order_relaxed);
+        // R309 PS5 experimental profile: batch 64 draws per Vulkan worker handoff.
+        // Keeps the 512-draw hard flush ceiling and all GPU cache/fence barriers.
+        // Other releases retain the upstream 8-draw default in performance.h.
+        // dev-settings dispatch_draws=8 restores baseline for an A/B comparison.
+        Eden::Performance::dispatch_mask.store(63, std::memory_order_relaxed);
         Eden::Performance::idle_spin_iterations.store(5000, std::memory_order_relaxed);
         Eden::Performance::jit_duplicate_tracking.store(false, std::memory_order_relaxed);
         Eden::Performance::pc_sample_core.store(0, std::memory_order_relaxed);
