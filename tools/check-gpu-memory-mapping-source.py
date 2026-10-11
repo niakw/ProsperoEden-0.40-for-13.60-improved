@@ -26,7 +26,12 @@ assert 'target_include_directories(video_core PRIVATE "${EDEN_PORT_DIR}")' in c
 # Scope the define to precisely the rewritten memory.cpp and GPU manager TU.
 assert 'set(eden_cpu_memory_tu "${PORT_BUILD_DIR}/memory.cpp")' in c
 assert 'set(eden_cpu_memory_tu "${PROJECT_SOURCE_DIR}/src/core/memory.cpp")' in c
-assert 'set_property(SOURCE "${eden_cpu_memory_tu}" TARGET_DIRECTORY core' in c
+assert 'set_property(SOURCE "${eden_native_memory_tu}" TARGET_DIRECTORY core' in c
+assert 'file(READ "${eden_cpu_memory_tu}" eden_cpu_memory)' in c
+assert 'set(unmapped_log "LOG_ERROR(HW_Memory,' in c
+assert 'if(NOT unmapped_count EQUAL 11)' in c
+assert 'memory-ps5.cpp' in c
+assert 'Eden::Performance::ShouldLogUnmappedAccess()' in c
 assert 'set_property(SOURCE "${PROJECT_SOURCE_DIR}/src/video_core/host1x/gpu_device_memory_manager.cpp"' in c
 assert c.count('APPEND PROPERTY COMPILE_DEFINITIONS "PS5_NATIVE=1"') >= 2
 assert 'validate_ps5_gpu_memory_mapping' in apply
