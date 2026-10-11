@@ -74,8 +74,11 @@ for token in ("disable_null_descriptor = false;", "disable_descriptor_buffer = f
               "disable_conditional_rendering = false;", "compute_barriers = true;",
               "hcr_mode = 1;"):
     assert token in vulkan_dev[vulkan_dev.index("inline void ResetForTitle()"):], token
+# The 64-draw handoff is DEV ONLY; ordinary builds must retain 8 as
+# performance.h's initial mask. The next title resets the experiment.
+assert "inline std::atomic<unsigned> dispatch_mask{7};" in (root / "headless/performance.h").read_text()
 for marker in ("graphics_usage_from_pool.store(true", "gc_keep_dirty.store(true",
-               "dispatch_mask.store(7", "idle_spin_iterations.store(5000",
+               "dispatch_mask.store(63", "idle_spin_iterations.store(5000",
                "jit_duplicate_tracking.store(false", "pc_sample_core.store(0",
                "pc_fast.store(false", "capture_early.store(false",
                "firmware_applets.store(false", "trace_fs_callers.store(false"):
