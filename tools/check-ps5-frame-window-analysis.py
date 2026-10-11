@@ -94,11 +94,11 @@ cache = importlib.util.module_from_spec(cache_spec)
 sys.modules[cache_spec.name] = cache
 cache_spec.loader.exec_module(cache)
 sample = [
-    "EDEN_VULKAN_FRAME total=150 frames=150 seconds=5.0 fps=30.0 worst_ms=34 late50=0",
+    "EDEN_VULKAN_FRAME total=150 frames=150 seconds=5.0 fps=30.0 worst_ms=34 late38=0 late50=0",
     "EDEN_FRAME_PRESSURE frame=150 cache_contended=1100 cache_wait_ms=40 gpu_full_ms=0",
-    "EDEN_VULKAN_FRAME total=300 frames=150 seconds=5.0 fps=29.9 worst_ms=56 late50=1",
+    "EDEN_VULKAN_FRAME total=300 frames=150 seconds=5.0 fps=29.9 worst_ms=56 late38=1 late50=1",
     "EDEN_FRAME_PRESSURE frame=300 cache_contended=1250 cache_wait_ms=80 gpu_full_ms=0",
-    "EDEN_VULKAN_FRAME total=401 frames=101 seconds=5.0 fps=20.2 worst_ms=105 late50=30",
+    "EDEN_VULKAN_FRAME total=401 frames=101 seconds=5.0 fps=20.2 worst_ms=105 late38=50 late50=30",
     "EDEN_FRAME_PRESSURE frame=401 cache_contended=18000 cache_wait_ms=270 gpu_full_ms=45",
     "EDEN_VULKAN_FRAME total=501 frames=100 seconds=5.0 fps=20 worst_ms=125 late50=40",
     "EDEN_FRAME_PRESSURE frame=999 cache_contended=0 cache_wait_ms=0",  # do not align
@@ -109,6 +109,7 @@ assert [int(v["total"]) for v in paired] == [150, 300, 401]
 text = cache.report(paired)
 assert "near30: n=2" in text and "cache_ge1000=2" in text
 assert "late50_windows=1" in text and "slow_below25: n=1" in text
+assert "late38_windows=1" in text and "late38_total=1" in text
 assert "blocked_ms_median=60" in text and "blocked_ms_median=270" in text
 assert "FPS near 30 is not smoothness" in text
 assert "NO_VALID_WINDOWS" in cache.report(cache.windows(sample[-2:]))
