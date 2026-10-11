@@ -17,6 +17,24 @@ function(eden4473_replace variable old new)
         message(FATAL_ERROR "Eden #4473: empty replacement anchor")
     endif()
     math(EXPR occurrences "(${before} - ${after}) / ${anchor_length}")
+    if(occurrences EQUAL 0)
+        # The PS5 dependency preparation may already have incorporated this
+        # exact pinned upstream fix. Never patch twice; accept only one exact
+        # match of the fixed variant, and reject arbitrary source drift.
+        string(LENGTH "${new}" fixed_length)
+        string(REPLACE "${new}" "" without_fixed "${source}")
+        string(LENGTH "${without_fixed}" without_fixed_length)
+        if(fixed_length GREATER 0)
+            math(EXPR fixed_occurrences "(${before} - ${without_fixed_length}) / ${fixed_length}")
+        else()
+            set(fixed_occurrences 0)
+        endif()
+        if(fixed_occurrences EQUAL 1)
+            message(STATUS "Eden #4473: ${variable} exact upstream replacement already applied")
+            set(${variable} "${source}" PARENT_SCOPE)
+            return()
+        endif()
+    endif()
     if(NOT occurrences EQUAL 1)
         # Preserve fail-closed behavior. Show only the nearest source around
         # the expected function to distinguish an upstream drift, CRLF,
