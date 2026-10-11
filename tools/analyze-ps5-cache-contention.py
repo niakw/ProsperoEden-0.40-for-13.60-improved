@@ -51,6 +51,8 @@ def report(rows: list[dict[str, float]]) -> str:
             f"blocked_ms_median={med(subset, 'cache_wait_ms')} "
             f"cache_ge1000={count(lambda r: r.get('cache_contended', 0)>=1000)} "
             f"worst_over50={count(lambda r: r.get('worst_ms', 0)>50)} "
+            f"late38_windows={count(lambda r: r.get('late38', 0)>0)} "
+            f"late38_total={sum(r.get('late38', 0) for r in subset):.0f} "
             f"late50_windows={count(lambda r: r.get('late50', 0)>0)} "
             f"max_worst_ms={max(r.get('worst_ms', 0) for r in subset):.3f}"
         )
