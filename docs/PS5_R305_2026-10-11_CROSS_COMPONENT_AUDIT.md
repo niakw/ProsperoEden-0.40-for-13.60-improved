@@ -86,3 +86,5 @@ Exact call-site verification in pinned `eden-emulator/mirror@5f142c79` (not infe
 ## Reproducible analysis tool (R305)
 
 `tools/analyze-ps5-cache-contention.py` now groups near-30 and below-25 windows **without declaring 30 FPS smooth**, and pairs `EDEN_FRAME_PRESSURE` with `EDEN_VULKAN_FRAME` only when their `frame`/`total` values match. `tools/check-ps5-frame-window-analysis.py` runs synthetic cases including 1 000+ conflicts while 30 FPS, a late frame without an FPS drop, and deliberately mismatched image IDs. No local log copy, no change on Mac or console.
+
+**CI scope:** the R305 parser regression is a host-only correctness gate; no R305 PS5 binary has been compiled. The earlier R304 native image has already passed PS5 build #38098982583. Runtime speed/graphics quality are not certified by an audit or CI run.
