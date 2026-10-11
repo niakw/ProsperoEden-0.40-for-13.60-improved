@@ -1984,6 +1984,12 @@ int main(int argc, char** argv) {
 #ifdef EDEN_DEV_ROM_ID
                     Eden::DevelopmentInput development_input;
                     unsigned command_poll = 0;
+                    const bool compat_input_requested = [] {
+                        std::ifstream settings(Eden::AppFile("dev-settings.txt"));
+                        for (std::string entry; settings >> entry;)
+                            if (entry == "compat_input=on") return true;
+                        return false;
+                    }();
 #endif
                     while (!stop.stop_requested()) {
                         if (auto error = Eden::TakeGpuFailure()) {
@@ -2009,14 +2015,14 @@ int main(int argc, char** argv) {
 #ifdef EDEN_DEV_ROM_ID
                         const auto command_now = std::chrono::duration_cast<std::chrono::milliseconds>(
                             std::chrono::steady_clock::now().time_since_epoch()).count();
-                        if (++command_poll >= 25) {
+                        if (compat_input_requested && ++command_poll >= 25) {
                             command_poll = 0;
                             std::ifstream command(Eden::AppFile("compat-input.txt"));
                             if (development_input.Read(command, command_now))
                                 std::printf("EDEN_DEV_INPUT sequence=%llu buttons=%x\n",
                                     static_cast<unsigned long long>(development_input.sequence), development_input.buttons);
                         }
-                        if (const auto sample = development_input.Sample(command_now))
+                        if (compat_input_requested) if (const auto sample = development_input.Sample(command_now))
                             pad->Consume({&*sample, 1});
                         // The guest's Minus going down and up, with how long the state before it
                         // lasted: the touchpad's tap and long press (headless/pad.cpp) on real timing.
