@@ -74,6 +74,19 @@ void SampleCpu(unsigned core, unsigned long long thread, unsigned long long pc, 
 struct alignas(64) Totals {
     std::atomic<unsigned long long> calls{}, nanoseconds{}, requested_bytes{};
 };
+// Unmapped guest memory is an error, but an invalid guest pointer can produce
+// tens of thousands of reports within a single second. Those synchronous
+// format/write operations steal time from the three PS5 guest CPU workers.
+// Keep the first 64 reports and one power-of-two progress report thereafter.
+// This changes ONLY diagnostics, never memory access permission/result.
+inline std::atomic<std::uint64_t> unmapped_access_count{0};
+inline bool ShouldLogUnmappedAccess() noexcept {
+    const std::uint64_t n = unmapped_access_count.fetch_add(1, std::memory_order_relaxed) + 1;
+    return n <= 64 || (n & (n - 1)) == 0;
+}
+inline void ResetUnmappedAccessCount() noexcept {
+    unmapped_access_count.store(0, std::memory_order_relaxed);
+}
 inline std::array<Totals, 4> compilation;
 inline std::array<std::atomic<unsigned long long>, 4> evacuations{};
 inline Totals storage;
