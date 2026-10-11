@@ -25,6 +25,8 @@ function(eden4473_replace variable old new)
 endfunction()
 
 set(eden4473_include "${PORT_BUILD_DIR}/eden4473")
+file(MAKE_DIRECTORY "${eden4473_include}/video_core/buffer_cache"
+                    "${eden4473_include}/video_core/engines")
 file(READ "${PROJECT_SOURCE_DIR}/src/video_core/buffer_cache/buffer_cache.h" eden4473_buffer)
 eden4473_replace(eden4473_buffer
     [=[void BufferCache<P>::WriteMemory(DAddr device_addr, u64 size) {
