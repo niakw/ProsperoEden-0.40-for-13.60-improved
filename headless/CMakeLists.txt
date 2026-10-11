@@ -1075,7 +1075,7 @@ if(PS5_NATIVE)
     endif()
     set(eden_native_memory_tu "${PORT_BUILD_DIR}/memory-ps5.cpp")
     write_derived("${eden_native_memory_tu}"
-        "#include \"${EDEN_PORT_DIR}/performance.h\"\\n${eden_cpu_memory}")
+        "#include \"${EDEN_PORT_DIR}/performance.h\"\n${eden_cpu_memory}")
     if(EDEN_A32_FASTMEM)
         list(REMOVE_ITEM core_sources "${PORT_BUILD_DIR}/memory.cpp")
     else()
