@@ -70,3 +70,19 @@ Un verrou contentionné dans le cache graphique **peut gêner plusieurs CPU invi
 - [Mesa threaded recorder optionnel](https://github.com/mihawk-99/PS5_Mesa/commit/d0d7325e447bb7872583298643e82a2a284c6412)
 - [SDK heap contention](https://github.com/mihawk-99/PS5_PayloadSDK/commit/3752be7e7812713e01fbe998d92952cd7b559f7f)
 - [R304 PS5 CI](https://github.com/niakw/Prospero.Eden-Encore/actions/runs/38098982583)
+
+## Hot-path code trace: why there are lock conflicts even at 30 FPS
+
+Exact call-site verification in pinned `eden-emulator/mirror@5f142c79` (not inferred from a GPU utilization graph):
+
+1. `src/video_core/renderer_vulkan/vk_rasterizer.cpp::RasterizerVulkan::PrepareDraw` calls `pipeline_cache.CurrentGraphicsPipeline()` **before** the paired locks (shader/pipeline creation can thus produce a separate slow path).
+2. It then takes **both** `buffer_cache.mutex` and `texture_cache.mutex` with `std::scoped_lock`. Within this critical section it calls `pipeline->Configure(is_indexed)`, `UpdateDynamicStates()`, and the draw-submission callback.
+3. In `src/video_core/renderer_vulkan/vk_graphics_pipeline.cpp::GraphicsPipeline::ConfigureImpl`, that critical section can include `texture_cache.SynchronizeDescriptors(false)`, staging uniform/storage buffers, texture sampler lookups, `FillImageViews`, descriptor updates and allocation. More geometry/textures or CPU→GPU page changes increase how often/long this region executes. **This is a concrete shared chokepoint, not proof of which nested function consumes the extra time.**
+4. Guest CPU threads concurrently enter `RasterizerVulkan::OnCPUWrite` and `GetFlushArea`, which request the same `buffer_cache` or `texture_cache` mutex. Repeated guest writes or tracked-page invalidations can therefore stall CPU threads while the GPU worker configures draws.
+5. At ~20.5 FPS (frame 18530), `cache_contended=18542` and `cache_wait_ms=320.179` across the 5 s window; at 30 FPS (frame 17237), `cache_contended=997` and `cache_wait_ms=48.571`. The **~6.6× increase in measured blocked milliseconds** and **~18.6× increase in failed try_lock attempts** accompany the scene's slowdown. The 320 ms sum across multiple CPU threads still does NOT fully account for losing ~50 frames/5 s: host JIT execution cost, work *inside* each lock, GPU draws and scheduling remain relevant.
+
+**Unsafe shortcut to reject:** taking one lock for the full guest frame, bypassing `OnCPUWrite`/flush or shortening a critical section without transferring ownership/coherence can cause missing textures, corrupted rendering and GPU faults, exactly what must be avoided. The correct next code change needs a contract for each `ConfigureImpl` cache operation and whether it can run safely before/after a lock; prefer adapting vetted upstream changes to making up a new synchronization model.
+
+## Reproducible analysis tool (R305)
+
+`tools/analyze-ps5-cache-contention.py` now groups near-30 and below-25 windows **without declaring 30 FPS smooth**, and pairs `EDEN_FRAME_PRESSURE` with `EDEN_VULKAN_FRAME` only when their `frame`/`total` values match. `tools/check-ps5-frame-window-analysis.py` runs synthetic cases including 1 000+ conflicts while 30 FPS, a late frame without an FPS drop, and deliberately mismatched image IDs. No local log copy, no change on Mac or console.
