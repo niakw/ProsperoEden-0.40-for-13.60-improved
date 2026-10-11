@@ -97,6 +97,28 @@ void RasterizerVulkan::DispatchCompute() {"""),
     ('#ifdef __ANDROID__\n    static constexpr u32 DRAWS_TO_DISPATCH = 512;\n    static constexpr u32 CHECK_MASK = 3;\n#else\n    static constexpr u32 DRAWS_TO_DISPATCH = 4096;\n    static constexpr u32 CHECK_MASK = 7;\n#endif // __ANDROID__\n\n    static_assert(DRAWS_TO_DISPATCH % (CHECK_MASK + 1) == 0);\n',
      '    static constexpr u32 DRAWS_TO_DISPATCH = 512;\n'
      '    const u32 CHECK_MASK = ::Eden::Performance::dispatch_mask.load(std::memory_order_relaxed);\n\n'),
+    # R309 PS5 watchdog: upstream checked the dispatch cadence BEFORE the 512-draw
+    # ceiling. At mask 7 it therefore flushed on draw 519, not 512; at mask 63
+    # on draw 575. Enforce the hard ceiling independently of dispatch cadence.
+    # Preserve the original pre-flush dispatch calls and all cache/fence locks.
+    ('    if ((++draw_counter & CHECK_MASK) != CHECK_MASK) {\n'
+     '        return;\n'
+     '    }\n'
+     '    if (draw_counter < DRAWS_TO_DISPATCH) {\n'
+     '        scheduler.DispatchWork();\n'
+     '        return;\n'
+     '    }\n'
+     '    scheduler.Flush();\n'
+     '    draw_counter = 0;',
+     '''    ++draw_counter;
+    if (draw_counter >= DRAWS_TO_DISPATCH) {
+        scheduler.Flush();
+        draw_counter = 0;
+        return;
+    }
+    if ((draw_counter & CHECK_MASK) == CHECK_MASK) {
+        scheduler.DispatchWork();
+    }'''),
     # Per-draw count for the GPU-thread report (dispatch time per draw).
     ('    FlushWork();\n    gpu_memory->FlushCaching();\n\n    GraphicsPipeline* const pipeline{pipeline_cache.CurrentGraphicsPipeline()};',
      '    if (::Eden::Performance::detailed_gpu_profile.load(std::memory_order_relaxed))\n'
