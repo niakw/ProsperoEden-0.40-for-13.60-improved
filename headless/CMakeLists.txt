@@ -2205,12 +2205,8 @@ set_property(SOURCE "${PORT_BUILD_DIR}/shader_environment.cpp" APPEND PROPERTY O
     "${EDEN_PORT_DIR}/shader_cache_reader.inc")
 list(REMOVE_ITEM video_sources shader_environment.cpp)
 list(APPEND video_sources "${PORT_BUILD_DIR}/shader_environment.cpp")
-# Apply the original Eden #4473 cache-coherency/Kepler dirty fixes ONLY
-# to the PS5-native Vulkan build. Preserve Encore's derived DMA shutdown
-# protections and keep the upstream source tree itself immutable.
-if(PS5_NATIVE AND EDEN_PS5_VULKAN)
-    include("${EDEN_PORT_DIR}/eden-buffer-4473.cmake")
-endif()
+# Eden #4473/#4477 are already applied once to the pinned source by
+# tools/apply-eden-backports.sh and validated there; never shadow headers twice.
 set_property(TARGET video_core PROPERTY SOURCES "${video_sources}")
 
 if(PS5_NATIVE)
