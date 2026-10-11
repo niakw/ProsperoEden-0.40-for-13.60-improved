@@ -73,8 +73,8 @@ int main() {
             device.Step();
             assert(device.draw_counter < 512);
             assert(device.scheduler.flushes == i / 512);
-            assert(device.scheduler.dispatches == (i / 512) * (512 / batch - 1)
-                                                + (i % 512) / batch);
+            assert(device.scheduler.dispatches == (i / 512) * (512 / batch)
+                                                + ((i % 512) + 1) / batch);
         }
         std::printf("PASS batch=%u flushes=%u dispatches=%u\n", batch,
                     device.scheduler.flushes, device.scheduler.dispatches);
