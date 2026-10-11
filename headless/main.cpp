@@ -2013,6 +2013,7 @@ int main(int argc, char** argv) {
                         pad->Poll();
 #endif
 #ifdef EDEN_DEV_ROM_ID
+                        if (compat_input_requested) {
                         const auto command_now = std::chrono::duration_cast<std::chrono::milliseconds>(
                             std::chrono::steady_clock::now().time_since_epoch()).count();
                         if (compat_input_requested && ++command_poll >= 25) {
@@ -2022,8 +2023,9 @@ int main(int argc, char** argv) {
                                 std::printf("EDEN_DEV_INPUT sequence=%llu buttons=%x\n",
                                     static_cast<unsigned long long>(development_input.sequence), development_input.buttons);
                         }
-                        if (compat_input_requested) if (const auto sample = development_input.Sample(command_now))
+                        if (const auto sample = development_input.Sample(command_now))
                             pad->Consume({&*sample, 1});
+                        }
                         // The guest's Minus going down and up, with how long the state before it
                         // lasted: the touchpad's tap and long press (headless/pad.cpp) on real timing.
                         {
