@@ -2,6 +2,9 @@
 // The crash report (crash_report.h). What the handler runs is in this file and uses only system
 // calls, atomics and the buffers below.
 #include "crash_report.h"
+#ifdef PS5_NATIVE
+#include "performance.h"
+#endif
 
 #include <signal.h>
 #include <algorithm>
@@ -348,6 +351,8 @@ void Compose(const Kind* kind, int code, std::uint64_t address, const Registers&
     t.Dec(gpu_completed_commands.load(std::memory_order_relaxed));
     t.Put("\nwatchdog suspected stalls: ");
     t.Dec(gpu_stall_suspicions.load(std::memory_order_relaxed));
+    t.Put("\ninvalid guest-memory accesses: ");
+    t.Dec(::Eden::Performance::unmapped_access_count.load(std::memory_order_relaxed));
     t.Put('\n');
     {
         std::int64_t start = 0;
