@@ -1590,6 +1590,7 @@ int main(int argc, char** argv) {
         // The PS5 port has software FFmpeg decoders but no FFmpeg hardware-device adapter.
         Settings::values.nvdec_emulation = game ? Settings::NvdecEmulation::Cpu
                                                 : Settings::NvdecEmulation::Off;
+        if (game) Eden::Performance::ResetUnmappedAccessCount();
         Settings::values.use_gdbstub = false;
         // Settings > Language: the system language games see, with its console region.
         static_assert(static_cast<int>(Settings::Language::EnglishBritish) == 12 &&
