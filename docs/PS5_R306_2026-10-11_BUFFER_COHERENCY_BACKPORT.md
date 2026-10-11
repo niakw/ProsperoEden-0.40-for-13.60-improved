@@ -1,3 +1,5 @@
+> **CORRECTION R307 — le backport Eden #4473/#4477 existait déjà !** Le patch `headless/backports/eden-4473-4477.patch` était appliqué par `tools/apply-eden-backports.sh` et vérifié par `validate_gpu` bien avant R306. Le binaire R306 #38101599715 est vert, mais les 10 ancres étaient déjà en forme corrigée ; R306 n'apporte donc aucun gain de performances démontrable et ajoute une couche redondante. R307 supprime cette couche, préserve le patch original et son reçu SHA-256, et reprend l'audit des vrais points de contention.
+
 # R306 — Cible fluidité 30 FPS / backport Eden #4473 (11 octobre 2026)
 
 ## Observation à ne plus perdre
