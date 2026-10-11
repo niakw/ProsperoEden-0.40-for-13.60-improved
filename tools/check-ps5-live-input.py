@@ -24,6 +24,7 @@ assert 'replay_requested, development_id, EDEN_DEV_PROFILE_TITLE)' in src
 assert 'if (!timed_replay) {' in src and 'pad->Poll();' in src
 assert 'compat_input_requested' in src
 assert 'compat_input=on' in src
+assert 'if (compat_input_requested && ++command_poll >= 25)' in src
 assert 'EDEN_PAD_INPUT mode=%s replay_requested=%d' in src
 assert 'development_id == EDEN_DEV_PROFILE_TITLE && !replay_off' not in src
 assert 'constexpr ButtonMask menu_chord = kButtonTouchPad | kButtonL1;' in pad
