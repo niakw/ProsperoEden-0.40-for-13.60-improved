@@ -83,6 +83,18 @@ assert 'Crash::gpu_completed_commands.load(std::memory_order_relaxed)' in watchd
 assert 'Crash::gpu_stall_suspicions.fetch_add(1, std::memory_order_relaxed)' in watchdog
 assert 'if (!Performance::detailed_gpu_profile.load(std::memory_order_relaxed)) return;' in watchdog
 
+# R304: rate-limit the observed 38K-error guest memory flood, not guest
+# reads/writes themselves. Even with logs OFF preserve the count on SIGSEGV.
+perf_header = read("headless/performance.h")
+assert "unmapped_access_count.fetch_add(1, std::memory_order_relaxed)" in perf_header
+assert "return n <= 64 || (n & (n - 1)) == 0;" in perf_header
+assert "ResetUnmappedAccessCount()" in main
+assert "unmapped_access_count.load(std::memory_order_relaxed)" in crash
+assert '#include "performance.h"' in crash
+assert "if(NOT unmapped_count EQUAL 11)" in gpu_worker_generator
+assert 'set(eden_native_memory_tu "${PORT_BUILD_DIR}/memory-ps5.cpp")' in gpu_worker_generator
+
+
 source = r"""
 #include <cassert>
 #include <cstdio>
@@ -148,6 +160,46 @@ with tempfile.TemporaryDirectory(prefix="encore-crash-only-logging-") as tmp:
                     "-Werror", "-I", str(root / "headless"),
                     str(cpp), "-o", str(binary)], check=True)
     subprocess.run([str(binary), str(work)], check=True, timeout=15)
+
+# Compile and execute the actual native-only atomic sampling helper.
+# No PS5 SDK or modified guest memory is needed for this policy test.
+begin = perf_header.index("inline std::atomic<std::uint64_t> unmapped_access_count")
+end = perf_header.index("inline std::array<Totals, 4> compilation;", begin)
+native_helper = perf_header[begin:end]
+fixture = """
+#include <atomic>
+#include <cassert>
+#include <cstdint>
+#include <thread>
+#include <vector>
+namespace Eden::Performance {
+NATIVE_HELPER
+}
+int main() {
+    using namespace Eden::Performance;
+    for (std::uint64_t i = 1; i <= 100000; ++i) {
+        const bool expected = i <= 64 || (i & (i - 1)) == 0;
+        assert(ShouldLogUnmappedAccess() == expected);
+    }
+    assert(unmapped_access_count.load() == 100000);
+    ResetUnmappedAccessCount();
+    assert(unmapped_access_count.load() == 0);
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 4; ++i)
+        threads.emplace_back([] {
+            for (int j = 0; j < 25000; ++j) (void)ShouldLogUnmappedAccess();
+        });
+    for (auto& t : threads) t.join();
+    assert(unmapped_access_count.load() == 100000);
+}
+""".replace("NATIVE_HELPER", native_helper)
+with tempfile.TemporaryDirectory(prefix="encore-unmapped-error-budget-") as tmp:
+    src = Path(tmp) / "rate.cpp"
+    binary = Path(tmp) / "rate"
+    src.write_text(fixture)
+    subprocess.run([cxx, "-std=c++20", "-O2", "-pthread", "-Wall", "-Wextra",
+                    "-Werror", str(src), "-o", str(binary)], check=True)
+    subprocess.run([str(binary)], check=True, timeout=15)
 
 print("PASS: quiet stdout/stderr no files; live enable/disable/re-enable; crash reporter independent")
 print("SOURCE/HOST ONLY: PS5 native binary, startup sequence and actual FPS still unverified")
