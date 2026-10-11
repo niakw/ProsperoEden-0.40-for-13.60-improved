@@ -1053,7 +1053,37 @@ if(PS5_NATIVE)
     else()
         set(eden_cpu_memory_tu "${PROJECT_SOURCE_DIR}/src/core/memory.cpp")
     endif()
-    set_property(SOURCE "${eden_cpu_memory_tu}" TARGET_DIRECTORY core
+    # The native console exhibited 38,472 unmapped memory error lines within
+    # 1.1 seconds shortly before FC27's halftime crash. Preserve the first
+    # 64 full errors and power-of-two followups, without mutating guest memory.
+    # Keep the upstream TU immutable and compose with the optional A32 port.
+    file(READ "${eden_cpu_memory_tu}" eden_cpu_memory)
+    set(unmapped_log "LOG_ERROR(HW_Memory, \"Unmapped ")
+    string(FIND "${eden_cpu_memory}" "${unmapped_log}" unmapped_at)
+    if(unmapped_at LESS 0)
+        message(FATAL_ERROR "Pinned unmapped memory error diagnostics changed")
+    endif()
+    string(REPLACE "${unmapped_log}"
+        "if (::Eden::Performance::ShouldLogUnmappedAccess()) LOG_ERROR(HW_Memory, \"Unmapped "
+        eden_cpu_memory "${eden_cpu_memory}")
+    # There are 8 error sites in the pinned memory.cpp; fail closed if upstream
+    # changes the count instead of silently leaving one path unbounded.
+    string(REGEX MATCHALL "ShouldLogUnmappedAccess\\(\\)" unmapped_calls "${eden_cpu_memory}")
+    list(LENGTH unmapped_calls unmapped_count)
+    if(NOT unmapped_count EQUAL 8)
+        message(FATAL_ERROR "Pinned unmapped memory error sites changed: ${unmapped_count} != 8")
+    endif()
+    set(eden_native_memory_tu "${PORT_BUILD_DIR}/memory-ps5.cpp")
+    write_derived("${eden_native_memory_tu}"
+        "#include \"${EDEN_PORT_DIR}/performance.h\"\\n${eden_cpu_memory}")
+    if(EDEN_A32_FASTMEM)
+        list(REMOVE_ITEM core_sources "${PORT_BUILD_DIR}/memory.cpp")
+    else()
+        list(REMOVE_ITEM core_sources "memory.cpp")
+    endif()
+    list(APPEND core_sources "${eden_native_memory_tu}")
+    set_property(TARGET core PROPERTY SOURCES "${core_sources}")
+    set_property(SOURCE "${eden_native_memory_tu}" TARGET_DIRECTORY core
         APPEND PROPERTY COMPILE_DEFINITIONS "PS5_NATIVE=1")
     set_property(SOURCE "${PROJECT_SOURCE_DIR}/src/video_core/host1x/gpu_device_memory_manager.cpp"
         TARGET_DIRECTORY video_core APPEND PROPERTY COMPILE_DEFINITIONS "PS5_NATIVE=1")
