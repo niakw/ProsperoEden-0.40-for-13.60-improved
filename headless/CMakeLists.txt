@@ -1066,12 +1066,12 @@ if(PS5_NATIVE)
     string(REPLACE "${unmapped_log}"
         "if (::Eden::Performance::ShouldLogUnmappedAccess()) LOG_ERROR(HW_Memory, \"Unmapped "
         eden_cpu_memory "${eden_cpu_memory}")
-    # There are 8 error sites in the pinned memory.cpp; fail closed if upstream
+    # There are 11 error sites in the pinned memory.cpp; fail closed if upstream
     # changes the count instead of silently leaving one path unbounded.
     string(REGEX MATCHALL "ShouldLogUnmappedAccess\\(\\)" unmapped_calls "${eden_cpu_memory}")
     list(LENGTH unmapped_calls unmapped_count)
-    if(NOT unmapped_count EQUAL 8)
-        message(FATAL_ERROR "Pinned unmapped memory error sites changed: ${unmapped_count} != 8")
+    if(NOT unmapped_count EQUAL 11)
+        message(FATAL_ERROR "Pinned unmapped memory error sites changed: ${unmapped_count} != 11")
     endif()
     set(eden_native_memory_tu "${PORT_BUILD_DIR}/memory-ps5.cpp")
     write_derived("${eden_native_memory_tu}"
